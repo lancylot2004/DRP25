@@ -1,0 +1,47 @@
+platform :ios do
+  lane :build do
+    build_app(
+      project: "./iosApp/iosApp.xcodeproj",
+      configuration: "Debug",
+      scheme: "iosApp",
+      destination: "generic/platform=iOS",
+      skip_codesigning: true,
+      skip_archive: true
+    )
+  end
+
+  lane :test do
+    gradle(
+      tasks: [
+        ':shared:iosSimulatorArm64Test',
+        ':shared:iosX64Test',
+      ]
+    )
+
+    run_tests(
+      project: "./iosApp/iosApp.xcodeproj",
+      configuration: "Debug",
+      scheme: "iosAppUITests",
+      device: "iPhone 16 Pro (18.4)",
+      ensure_devices_found: true,
+      prelaunch_simulator: true,
+      fail_build: false,
+      reset_simulator: true
+    )
+  end
+end
+
+platform :android do
+  lane :build do
+    gradle(
+      task: "assemble",
+      build_type: "Debug"
+    )
+  end
+
+  lane :test do
+    gradle(
+      task: "testDebugUnitTest"
+    )
+  end
+end
