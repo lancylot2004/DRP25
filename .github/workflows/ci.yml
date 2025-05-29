@@ -1,9 +1,6 @@
 name: CI
 on: [push, pull_request]
 
-env:
-  JAVA_VERSION: '23'
-
 jobs:
   test:
     name: Test
@@ -18,6 +15,7 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4.7.1
         with:
-          java-version: ${{ env.JAVA_VERSION }}
+          java-version: '23'
+          distribution: 'temurin'
       - name: Check Tests
         run: "./gradlew test"
