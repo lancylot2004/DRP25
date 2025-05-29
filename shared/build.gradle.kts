@@ -75,8 +75,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("general") {
+            storeFile = file("drpAndroidKey")
+            storePassword = System.getenv("ANDROID_STORE_PASS")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASS")
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfig = signingConfigs.getByName("general")
             isMinifyEnabled = false
         }
     }
