@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -53,6 +55,10 @@ kotlin {
 
             // Functional | https://arrow-kt.io/ | Apache 2.0
             implementation(libs.arrow.core)
+
+            // Lucide Icons | https://github.com/composablehorizons/composeicons | MIT
+            //              | https://lucide.dev/ | ISC
+            implementation(libs.composables.icons.lucide)
         }
     }
 }
