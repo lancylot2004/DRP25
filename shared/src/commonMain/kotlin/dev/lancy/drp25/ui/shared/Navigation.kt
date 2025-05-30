@@ -1,6 +1,12 @@
 package dev.lancy.drp25.ui.shared
 
+import com.bumble.appyx.components.spotlight.SpotlightModel
+import com.bumble.appyx.interactions.gesture.GestureFactory
+import com.bumble.appyx.interactions.ui.Visualisation
+import com.bumble.appyx.interactions.ui.context.TransitionBounds
+import com.bumble.appyx.interactions.ui.context.UiContext
 import com.bumble.appyx.navigation.node.Node
+import dev.lancy.drp25.ui.main.feed.FeedNode
 
 /**
  * [NavTarget] is an interface that represents a target for navigation within the application.

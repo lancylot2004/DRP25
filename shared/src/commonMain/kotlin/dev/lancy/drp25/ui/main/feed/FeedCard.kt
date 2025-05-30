@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
@@ -53,103 +54,111 @@ class FeedCard(
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
         Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(Size.BigPadding)
-                .clip(Shape.RoundedLarge)
-                .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge)
+            modifier =
+                modifier
+                    .fillMaxSize()
+                    .padding(Size.BigPadding)
+                    .clip(Shape.RoundedLarge)
+                    .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge),
         ) {
             KamelImage(
-                resource = asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg"),
+                resource =
+                    asyncPainterResource(
+                        recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg",
+                    ),
                 contentDescription = recipe.name,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .haze(state = hazeState),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .haze(state = hazeState),
                 contentScale = ContentScale.Crop,
-                animationSpec = spring(
-                    stiffness = Spring.StiffnessMediumLow,
-                    visibilityThreshold = 0.01f
-                )
+                animationSpec =
+                    spring(
+                        stiffness = Spring.StiffnessMediumLow,
+                        visibilityThreshold = 0.01f,
+                    ),
             )
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .align(Alignment.BottomStart)
-                    .background(Brush.verticalGradient(
-                        colorStops = arrayOf(
-                            0.6f to Color.Transparent,
-                            0.85f to Color.Black
-                        )
-                    ))
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .align(Alignment.BottomStart)
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops =
+                                    arrayOf(
+                                        0.6f to Color.Transparent,
+                                        0.85f to Color.Black,
+                                    ),
+                            ),
+                        ),
             )
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(1f / 3.2f)
-                    .align(Alignment.BottomStart)
-                    .padding(Size.Padding),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(1f / 3.2f)
+                        .align(Alignment.BottomStart)
+                        .padding(Size.Padding),
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(recipe.name, style = Typography.titleMedium, color = ColourScheme.onBackground)
-                Row {
-                    Icon(
-                        Lucide.Clock,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(Size.CornerSmall),
-                        tint = ColourScheme.onBackground
-                    )
-                    Text(
-                        "${recipe.cookingTime} minutes",
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        style = Typography.bodyMedium,
-                        color = ColourScheme.onBackground
-                    )
-                }
-                Row {
-                    Icon(
-                        Lucide.Carrot,
-                        contentDescription = null,
-                        modifier = Modifier.padding(Size.CornerSmall),
-                        tint = ColourScheme.onBackground
-                    )
-                    Text(
-                        recipe.tags.take(3).joinToString(),
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        style = Typography.bodyMedium,
-                        color = ColourScheme.onBackground
-                    )
-                }
-                Row {
-                    Icon(
-                        Lucide.Star,
-                        contentDescription = null,
-                        modifier = Modifier.padding(Size.CornerSmall),
-                        tint = ColourScheme.onBackground
-                    )
-                    Text(
-                        "${recipe.rating.round(1)} / 5",
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        style = Typography.bodyMedium,
-                        color = ColourScheme.onBackground
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight()
-                        .clip(Shape.RoundedLarge)
-                        .background(Color.Gray)
-                        .hazeChild(hazeState)
+
+                val keyInfo: @Composable (ImageVector, String, String) -> Unit =
+                    { icon, desc, text ->
+                        Row {
+                            Icon(
+                                icon,
+                                contentDescription = desc,
+                                modifier = Modifier.padding(Size.CornerSmall),
+                                tint = ColourScheme.onBackground,
+                            )
+                            Text(
+                                text,
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                                style = Typography.bodyMedium,
+                                color = ColourScheme.onBackground,
+                            )
+                        }
+                    }
+
+                keyInfo(
+                    Lucide.Clock,
+                    "Cooking Time",
+                    "${recipe.cookingTime} minutes",
+                )
+
+                keyInfo(
+                    Lucide.Carrot,
+                    "Tags",
+                    recipe.tags.take(3).joinToString(),
+                )
+
+                keyInfo(
+                    Lucide.Star,
+                    "Rating",
+                    "${recipe.rating.round(1)} / 5",
+                )
+
+                LazyRow(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight()
+                            .clip(Shape.RoundedLarge)
+                            .background(Color.Gray)
+                            .hazeChild(hazeState),
                 ) {
-                    LazyRow {
-                        items(recipe.tags.take(3)) {
-                            Chip(
-                                onClick = {},
-                                modifier = Modifier.padding(Size.Padding)
-                            ) {
-                                Text(it.toString(), style = Typography.bodyMedium, color = Color.Black)
-                            }
+                    items(recipe.tags.take(3)) {
+                        Chip(
+                            onClick = {},
+                            modifier = Modifier.padding(Size.Padding),
+                        ) {
+                            Text(
+                                it.toString(),
+                                style = Typography.bodyMedium,
+                                color = Color.Black,
+                            )
                         }
                     }
                 }

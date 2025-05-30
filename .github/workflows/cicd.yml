@@ -2,51 +2,55 @@ name: Continuous Integration / Continuous Deployment
 
 on:
   push:
-    branches: [main, feat/initial]
+    branches: [main]
   workflow_dispatch:
   release:
     types: [published]
 
 jobs:
-#  # ─────── STAGE 1: CODE QUALITY ───────
-#  style:
-#    name: Lint / Style
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Run `detekt`
-#        run: ./gradlew detekt
-#
-#  # ─────── STAGE 2: TEST ───────
-#  test-android:
-#    name: Android Unit Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:testDebugUnitTest
-#
-#  test-ios:
-#    name: iOS Unit Tests
-#    needs: [style]
-#    runs-on: macos-15
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
-#
-#  test-integration:
-#    name: Integration Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: echo "Run dummy integration tests here"
+  # ─────── STAGE 1: CODE QUALITY ───────
+  style:
+    name: Lint / Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run `detekt`
+        run: ./gradlew detekt
+
+  # ─────── STAGE 2: TEST ───────
+  test-android:
+    name: Android Unit Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./gradlew :shared:testDebugUnitTest
+
+  test-ios:
+    name: iOS Unit Tests
+    needs: [style]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
+
+  test-integration:
+    name: Integration Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run dummy integration tests here"
 
   # ─────── STAGE 3: BUILD ───────
   build-android:
     name: Build Android APK
-#    needs: [test-android, test-integration]
+    needs: [test-android, test-integration]
     runs-on: ubuntu-latest
+    env:
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - name: Decode keystore
@@ -55,7 +59,7 @@ jobs:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
 
       - name: Assemble & Sign APK
-        run: ./gradlew :shared:assembleRelease -PstorePassword=${{ secrets.STORE_PASSWORD }} -PkeyAlias=${{ secrets.KEY_ALIAS }} -PkeyPassword=${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :shared:assembleRelease -PstorePassword=$STORE_PASSWORD -PkeyAlias=$KEY_ALIAS -PkeyPassword=$KEY_PASSWORD
 
       - uses: actions/upload-artifact@v4
         with:
@@ -64,7 +68,7 @@ jobs:
 
   build-ios:
     name: Build iOS IPA
-#    needs: [test-ios, test-integration]
+    needs: [test-ios, test-integration]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
@@ -75,17 +79,22 @@ jobs:
           ruby-version: 3.3
           bundler-cache: true
 
-      - name: Decode API Key
+      - name: Select XCode 16.3
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app
+
+      - name: Decode App Store Connect key
         run: |
           mkdir -p fastlane
-          echo "FASTLANE_IOS_PROV_JSON" | base64 --decode > fastlane/key.json
-        env:
-          FASTLANE_IOS_PROV_JSON: ${{ secrets.FASTLANE_IOS_PROV_JSON }}
+          echo "${{ secrets.FASTLANE_IOS_PROV_SECRET }}" | base64 --decode > fastlane/AuthKey.p8
 
       - name: Build IPA via Fastlane
         uses: maierj/fastlane-action@v3.1.0
+        env:
+          FASTLANE_IOS_PROV_ID: ${{ secrets.FASTLANE_IOS_PROV_ID }}
+          FASTLANE_IOS_PROV_ISSUER: ${{ secrets.FASTLANE_IOS_PROV_ISSUER }}
+          FASTLANE_IOS_PROV_SECRET: ${{ secrets.FASTLANE_IOS_PROV_SECRET }}
         with:
-          lane: gym
+          lane: release
 
       - uses: actions/upload-artifact@v4
         with:
