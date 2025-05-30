@@ -1,0 +1,7 @@
+git_url("git@github.com:lancylot2004/apple.git")
+
+storage_mode("git")
+type("appstore")
+
+app_identifier(["dev.lancy.drp25"])
+username("me@lancy.dev")

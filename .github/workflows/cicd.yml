@@ -43,29 +43,29 @@ jobs:
 #      - run: echo "Run dummy integration tests here"
 
   # ─────── STAGE 3: BUILD ───────
-  build-android:
-    name: Build Android APK
-#    needs: [test-android, test-integration]
-    runs-on: ubuntu-latest
-    env:
-      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Decode keystore
-        run: |
-          echo "$ANDROID_KEYSTORE" | base64 --decode > ./shared/keystore.jks
-        env:
-          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-
-      - name: Assemble & Sign APK
-        run: ./gradlew :shared:assembleRelease
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: androidApp/build/outputs/apk/release/androidApp-release.apk
+#  build-android:
+#    name: Build Android APK
+##    needs: [test-android, test-integration]
+#    runs-on: ubuntu-latest
+#    env:
+#      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+#      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+#      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+#    steps:
+#      - uses: actions/checkout@v4
+#      - name: Decode keystore
+#        run: |
+#          echo "$ANDROID_KEYSTORE" | base64 --decode > ./shared/keystore.jks
+#        env:
+#          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+#
+#      - name: Assemble & Sign APK
+#        run: ./gradlew :shared:assembleRelease
+#
+#      - uses: actions/upload-artifact@v4
+#        with:
+#          name: android-apk
+#          path: androidApp/build/outputs/apk/release/androidApp-release.apk
 
   build-ios:
     name: Build iOS IPA
@@ -83,17 +83,11 @@ jobs:
       - name: Select XCode 16.3
         run: sudo xcode-select -s /Applications/Xcode_16.3.app
 
-      - name: Decode App Store Connect key
-        run: |
-          mkdir -p fastlane
-          echo "${{ secrets.FASTLANE_IOS_PROV_SECRET }}" | base64 --decode > fastlane/AuthKey.p8
-
       - name: Build IPA via Fastlane
         uses: maierj/fastlane-action@v3.1.0
         env:
-          FASTLANE_IOS_PROV_ID: ${{ secrets.FASTLANE_IOS_PROV_ID }}
-          FASTLANE_IOS_PROV_ISSUER: ${{ secrets.FASTLANE_IOS_PROV_ISSUER }}
-          FASTLANE_IOS_PROV_SECRET: ${{ secrets.FASTLANE_IOS_PROV_SECRET }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: https://${{ secrets.MATCH_GH_TOKEN }}@github.com/lancylot2004/apple.git
         with:
           lane: release
 
@@ -103,27 +97,27 @@ jobs:
           path: ./build/deploy.ipa
 
   # ─────── STAGE 4: PUBLISH ───────
-  publish-release:
-    name: Publish Artifacts to GitHub Release
-    needs: [build-android] # [build-ios, build-android]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: android-apk
-          path: ./release
-
+#  publish-release:
+#    name: Publish Artifacts to GitHub Release
+#    needs: [build-android] # [build-ios, build-android]
+#    runs-on: ubuntu-latest
+#    steps:
 #      - uses: actions/download-artifact@v3
 #        with:
-#          name: ios-ipa
+#          name: android-apk
 #          path: ./release
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./release/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+##      - uses: actions/download-artifact@v3
+##        with:
+##          name: ios-ipa
+##          path: ./release
+#
+#      - name: Upload to GitHub Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          files: ./release/*
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 #  upload-testflight:
 #    name: Upload IPA to TestFlight
