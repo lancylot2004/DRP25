@@ -18,6 +18,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +32,9 @@ import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Star
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
@@ -47,6 +51,7 @@ class FeedCard(
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
+        val hazeState = remember { HazeState() }
         Box(
             modifier = modifier
                 .fillMaxSize()
@@ -57,7 +62,9 @@ class FeedCard(
             KamelImage(
                 resource = asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg"),
                 contentDescription = recipe.name,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .haze(state = hazeState),
                 contentScale = ContentScale.Crop,
                 animationSpec = spring(
                     stiffness = Spring.StiffnessMediumLow,
@@ -133,6 +140,7 @@ class FeedCard(
                         .fillMaxHeight()
                         .clip(Shape.RoundedLarge)
                         .background(Color.Gray)
+                        .hazeChild(hazeState)
                 ) {
                     LazyRow {
                         items(recipe.tags.take(3)) {
