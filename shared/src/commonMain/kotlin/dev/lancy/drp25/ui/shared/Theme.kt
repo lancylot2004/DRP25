@@ -97,7 +97,7 @@ private fun appTypography(): Typography = Typography().run {
             color = Color.White,
             fontFamily = fontFamily,
             fontSize = TextUnit(spSize, TextUnitType.Sp),
-            fontWeight = weight
+            fontWeight = weight,
         )
     }
 
@@ -114,10 +114,11 @@ private fun appTypography(): Typography = Typography().run {
     )
 }
 
+@Suppress("ktlint:standard:function-naming")
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable() () -> Unit
+    content: @Composable () -> Unit
 ) = MaterialTheme(
     colorScheme = if (darkTheme) { darkColourScheme } else { lightColourScheme },
     typography = appTypography(),

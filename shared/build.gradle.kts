@@ -7,6 +7,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
+}
+
+detekt {
+    toolVersion = "1.23.8"
+    config.setFrom(file("detekt.yml"))
+    buildUponDefaultConfig = true
 }
 
 kotlin {
@@ -15,18 +22,18 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_21)
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "shared"
             isStatic = true
         }
     }
-    
+
     sourceSets {
         iosMain.dependencies {
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
@@ -85,12 +92,21 @@ kotlin {
 
 android {
     namespace = "dev.lancy.drp25"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk =
+        libs.versions.android.compileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
         applicationId = "dev.lancy.drp25"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.android.targetSdk
+                .get()
+                .toInt()
         versionCode = 1
         versionName = "1.0"
     }
@@ -101,8 +117,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("general") {
+            storeFile = file("../keystore.jks")
+            storePassword = System.getenv("ANDROID_STORE_PASS")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASS")
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfig = signingConfigs.getByName("general")
             isMinifyEnabled = false
         }
     }

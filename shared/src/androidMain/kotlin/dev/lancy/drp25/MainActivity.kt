@@ -31,7 +31,7 @@ class MainActivity : NodeActivity() {
                 Scaffold(Modifier.safeDrawingPadding()) { _ ->
                     NodeHost(
                         lifecycle = AndroidLifecycle(LocalLifecycleOwner.current.lifecycle),
-                        integrationPoint = appyxIntegrationPoint
+                        integrationPoint = appyxIntegrationPoint,
                     ) { RootNode(nodeContext = it) }
                 }
             }

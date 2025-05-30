@@ -39,7 +39,8 @@ interface NavProvider<T : NavTarget> {
      * explicit reference to the destination node with its own target type [C]. Chain these calls
      * to navigate through multiple nodes.
      */
-    suspend fun <C: NavTarget> navigate(target: T): Node<C>
+    suspend fun <C : NavTarget> navigate(target: T): Node<C>
+
     suspend fun goBack() = Unit
 }
 
@@ -65,8 +66,7 @@ interface NavConsumer<T : NavTarget, P> where P : Node<T>, P : NavProvider<T> {
  * [NavConsumerImpl] is a convenience implementation of [NavConsumer].
  */
 open class NavConsumerImpl<T : NavTarget, P>(
-    override val navParent: P
+    override val navParent: P,
 ) : NavConsumer<T, P> where P : Node<T>, P : NavProvider<T> {
-    override suspend fun <C : NavTarget> superNavigate(target: T): Node<C> =
-        navParent.navigate(target)
+    override suspend fun <C : NavTarget> superNavigate(target: T): Node<C> = navParent.navigate(target)
 }
