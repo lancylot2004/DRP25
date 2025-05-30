@@ -2,20 +2,13 @@ package dev.lancy.drp25.utilities
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeStyle
 
@@ -92,18 +85,20 @@ object Animation {
     fun <T> short(): AnimationSpec<T> = tween(50, 100)
 
     /** Animation to reach a end state, long. */
-    val EnterLong: AnimationSpec<Float> = tween(
-        durationMillis = 600,
-        delayMillis = DelayShort,
-        easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
-    )
+    val EnterLong: AnimationSpec<Float> =
+        tween(
+            durationMillis = 600,
+            delayMillis = DelayShort,
+            easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
+        )
 
     /** Animation to revert from an end state, long. */
-    val ExitLong: AnimationSpec<Float> = tween(
-        durationMillis = 350,
-        delayMillis = DelayShort,
-        easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
-    )
+    val ExitLong: AnimationSpec<Float> =
+        tween(
+            durationMillis = 350,
+            delayMillis = DelayShort,
+            easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
+        )
 }
 
 object Const {

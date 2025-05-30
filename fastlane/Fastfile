@@ -1,3 +1,5 @@
+default_platform(:ios)
+
 platform :ios do
   lane :build do
     build_app(
@@ -27,6 +29,29 @@ platform :ios do
       prelaunch_simulator: true,
       fail_build: false,
       reset_simulator: true
+    )
+  end
+
+  lane :release do
+    app_store_connect_api_key(
+      key_filepath: "fastlane/key.json"
+    )
+
+    gym(
+      project: "./iosApp/iosApp.xcodeproj",
+      scheme: "iosApp",
+      configuration: "Release",
+      output_directory: "./build",
+      output_name: "deploy",
+      destination: "generic/platform=iOS",
+      export_method: "app-store",
+      export_options: {
+        signingStyle: "automatic",
+        method: "app-store",
+        provisioningProfiles: {
+          "dev.lancy.drp25" => ""
+        }
+      }
     )
   end
 end
