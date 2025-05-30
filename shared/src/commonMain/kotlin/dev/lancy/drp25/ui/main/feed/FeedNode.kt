@@ -7,7 +7,6 @@ import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.SpotlightModel
 import com.bumble.appyx.components.spotlight.ui.slider.SpotlightSlider
 import com.bumble.appyx.components.spotlight.ui.sliderscale.SpotlightSliderScale
-import com.bumble.appyx.interactions.gesture.GestureFactory
 import com.bumble.appyx.navigation.composable.AppyxNavigationContainer
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
@@ -20,10 +19,10 @@ import dev.lancy.drp25.ui.shared.NavConsumerImpl
 class FeedNode(
     nodeContext: NodeContext,
     parent: MainNode,
-    private val spotlight: Spotlight<FeedTarget> = Spotlight(
+    private val spotlight: Spotlight<FeedNode.FeedTarget> = Spotlight(
         model = SpotlightModel(
             items = listOf(FeedTarget("1", example), FeedTarget("1", example), FeedTarget("1", example)),
-            savedStateMap = mapOf()
+            savedStateMap = mapOf(),
         ),
         visualisation = {
             SpotlightSliderScale(

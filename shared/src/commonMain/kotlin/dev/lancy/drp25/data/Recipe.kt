@@ -42,5 +42,5 @@ val example = Recipe(
         RecipeTag.Cuisine.Italian,
         RecipeTag.MealType.Dinner
     ),
-    imageURL = "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg"
+    imageURL = "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg"
 )
