@@ -41,6 +41,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.material3)
+            implementation(libs.kotlinx.serialization)
 
             // Model-Driven Navigation | https://github.com/bumble-tech/appyx | Apache-2.0
             implementation(libs.appyx.interactions)

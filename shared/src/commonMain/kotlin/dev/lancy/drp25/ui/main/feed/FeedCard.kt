@@ -12,11 +12,13 @@ import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.ui.fader.SpotlightFader
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
+import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.main.MainNode.MainTarget
 import dev.lancy.drp25.utilities.Shape
 
 class FeedCard(
     nodeContext: NodeContext,
+    recipe: Recipe,
 ) : LeafNode(nodeContext) {
     @Composable
     override fun Content(modifier: Modifier) {
