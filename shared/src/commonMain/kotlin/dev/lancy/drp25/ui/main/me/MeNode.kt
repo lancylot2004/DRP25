@@ -10,6 +10,6 @@ import dev.lancy.drp25.ui.main.MainNode
 class MeNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext) {
     @Composable
     override fun Content(modifier: Modifier) {
-        Text("Me")
+        Text("Me, hi")
     }
 }

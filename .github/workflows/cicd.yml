@@ -2,7 +2,7 @@ name: Continuous Integration / Continuous Deployment
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/m2]
   workflow_dispatch:
   release:
     types: [published]
