@@ -1,0 +1,15 @@
+scheme("iosApp")
+
+configuration("Release")
+
+project("./iosApp/iosApp.xcodeproj")
+output_directory("./build")
+output_name("deploy")
+
+export_team_id("KTK5R8QJ6S")
+export_options({
+  provisioningProfiles: {
+    "dev.lancy.drp25" => "DRP25"
+  },
+  method: "app-store",
+})
