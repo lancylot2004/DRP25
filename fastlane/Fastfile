@@ -33,10 +33,6 @@ platform :ios do
   end
 
   lane :release do
-    app_store_connect_api_key(
-      key_filepath: "fastlane/key.json"
-    )
-
     gym(
       project: "./iosApp/iosApp.xcodeproj",
       scheme: "iosApp",
@@ -45,13 +41,6 @@ platform :ios do
       output_name: "deploy",
       destination: "generic/platform=iOS",
       export_method: "app-store",
-      export_options: {
-        signingStyle: "automatic",
-        method: "app-store",
-        provisioningProfiles: {
-          "dev.lancy.drp25" => ""
-        }
-      }
     )
   end
 end
