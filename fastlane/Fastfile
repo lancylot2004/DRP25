@@ -33,9 +33,20 @@ platform :ios do
   end
 
   lane :release do
+    create_keychain(
+      name: "keychain",
+      password: ENV["MATCH_KEYCHAIN_PASSWORD"],
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      add_to_search_list: true
+    )
+
     match(
       type: "appstore",
-      readonly: true
+      readonly: true,
+      keychain_name: "keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"],
     )
 
     build_ios_app(

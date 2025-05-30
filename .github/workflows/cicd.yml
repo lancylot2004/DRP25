@@ -8,71 +8,120 @@ on:
     types: [published]
 
 jobs:
-#  # ─────── STAGE 1: CODE QUALITY ───────
-#  style:
-#    name: Lint / Style
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Run `detekt`
-#        run: ./gradlew detekt
-#
-#  # ─────── STAGE 2: TEST ───────
-#  test-android:
-#    name: Android Unit Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:testDebugUnitTest
-#
-#  test-ios:
-#    name: iOS Unit Tests
-#    needs: [style]
-#    runs-on: macos-15
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
-#
-#  test-integration:
-#    name: Integration Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: echo "Run dummy integration tests here"
+  # ─────── STAGE 1: CODE QUALITY ───────
+  style:
+    name: Lint / Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Run `detekt`
+        run: ./gradlew detekt
 
-  # ─────── STAGE 3: BUILD ───────
-#  build-android:
-#    name: Build Android APK
-##    needs: [test-android, test-integration]
-#    runs-on: ubuntu-latest
-#    env:
-#      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-#      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-#      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Decode keystore
-#        run: |
-#          echo "$ANDROID_KEYSTORE" | base64 --decode > ./shared/keystore.jks
-#        env:
-#          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
-#
-#      - name: Assemble & Sign APK
-#        run: ./gradlew :shared:assembleRelease
-#
-#      - uses: actions/upload-artifact@v4
-#        with:
-#          name: android-apk
-#          path: androidApp/build/outputs/apk/release/androidApp-release.apk
+  # ─────── STAGE 2: TEST ───────
+  test-android:
+    name: Android Unit Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - run: ./gradlew :shared:testDebugUnitTest
 
-  build-ios:
-    name: Build iOS IPA
-#    needs: [test-ios, test-integration]
+  test-ios:
+    name: iOS Unit Tests
+    needs: [style]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
+
+  test-integration:
+    name: Integration Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run dummy integration tests here"
+
+  # ─────── STAGE 3: BUILD ───────
+  build-android:
+    name: Build Android APK
+    needs: [test-android, test-integration]
+    runs-on: ubuntu-latest
+    env:
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Decode keystore
+        run: echo "$ANDROID_KEYSTORE" | base64 --decode > ./shared/keystore.jks
+        env:
+          ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
+      - name: Assemble & Sign APK
+        run: ./gradlew :shared:assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: androidApp/build/outputs/apk/release/androidApp-release.apk
+
+  build-ios:
+    name: Build iOS IPA
+    needs: [test-ios, test-integration]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Bundler
+        uses: actions/cache@v3
+        with:
+          path: vendor/bundle
+          key: ${{ runner.os }}-gems-${{ hashFiles('Gemfile.lock') }}
+          restore-keys: ${{ runner.os }}-gems
+
+      - name: Cache Kotlin/Native Compiler
+        uses: actions/cache@v3
+        with:
+          path: ~/.konan
+          key: ${{ runner.os }}-konan-${{ hashFiles('**/*.gradle*', 'gradle.properties') }}
+          restore-keys: ${{ runner.os }}-konan
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: ~/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: ${{ runner.os }}-gradle
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v3
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: ${{ runner.os }}-spm
 
       - name: Setup Ruby & Bundler
         uses: ruby/setup-ruby@v1
@@ -88,6 +137,7 @@ jobs:
         env:
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           MATCH_GIT_URL: https://${{ secrets.MATCH_GH_TOKEN }}@github.com/lancylot2004/apple.git
+          MATCH_KEYCHAIN_PASSWORD: ${{ secrets.MATCH_KEYCHAIN_PASSWORD }}
         with:
           lane: release
 
@@ -97,54 +147,52 @@ jobs:
           path: ./build/deploy.ipa
 
   # ─────── STAGE 4: PUBLISH ───────
-#  publish-release:
-#    name: Publish Artifacts to GitHub Release
-#    needs: [build-android] # [build-ios, build-android]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/download-artifact@v3
-#        with:
-#          name: android-apk
-#          path: ./release
-#
-##      - uses: actions/download-artifact@v3
-##        with:
-##          name: ios-ipa
-##          path: ./release
-#
-#      - name: Upload to GitHub Release
-#        uses: softprops/action-gh-release@v1
-#        with:
-#          files: ./release/*
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish-release:
+    name: Publish Artifacts to GitHub Release
+    needs: [build-ios, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: ./release
 
-#  upload-testflight:
-#    name: Upload IPA to TestFlight
-#    needs: build-ios
-#    runs-on: macos-15
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - uses: actions/download-artifact@v3
-#        with:
-#          name: ios-ipa
-#          path: ./build
-#
-#      - uses: ruby/setup-ruby@v1
-#        with:
-#          ruby-version: 3.3
-#          bundler-cache: true
-#
-#      - name: Decode API Key
-#        run: |
-#          mkdir -p fastlane
-#          echo "FASTLANE_IOS_PROV_JSON" | base64 --decode > fastlane/key.json
-#        env:
-#          FASTLANE_IOS_PROV_JSON: ${{ secrets.FASTLANE_IOS_PROV_JSON }}
-#
-#      - name: Upload to TestFlight
-#        uses: maierj/fastlane-action@v3.0.0
-#        with:
-#          lane: pilot
-#          options: upload --api_key_path fastlane/key.json --ipa ./build/deploy.ipa
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: ./release
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload-testflight:
+    name: Upload IPA to TestFlight
+    needs: build-ios
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-ipa
+          path: ./build
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.3
+          bundler-cache: true
+
+      - name: Decode API Key
+        run: |
+          mkdir -p fastlane
+          echo "${{ secrets.FASTLANE_IOS_PROV_JSON }}" | base64 --decode > fastlane/key.json
+
+      - name: Upload to TestFlight
+        uses: maierj/fastlane-action@v3.1.0
+        with:
+          lane: pilot
+          options: upload --api_key_path fastlane/key.json --ipa ./build/deploy.ipa
