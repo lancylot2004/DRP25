@@ -129,7 +129,7 @@ class MainNode(
         )
 
         companion object : StaticNavTarget {
-            override val default: MainTarget = Me
+            override val default: MainTarget = Feed
 
             override val entries: List<MainTarget> = listOf(Feed, Me)
         }

@@ -1,5 +1,8 @@
 package dev.lancy.drp25.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 sealed class RecipeTag {
     sealed class Diet: RecipeTag() {
         data object Vegan : Diet()

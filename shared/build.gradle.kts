@@ -28,9 +28,17 @@ kotlin {
     }
     
     sourceSets {
+        iosMain.dependencies {
+            // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.darwin)
+        }
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+
+            // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.okhttp)
         }
 
         commonMain.dependencies {
@@ -60,6 +68,17 @@ kotlin {
             // Lucide Icons | https://github.com/composablehorizons/composeicons | MIT
             //              | https://lucide.dev/ | ISC
             implementation(libs.composables.icons.lucide)
+
+            // Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.ws)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
+            // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
+            implementation(libs.kamel.image)
         }
     }
 }

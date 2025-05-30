@@ -13,6 +13,7 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelize
+import com.bumble.appyx.utils.multiplatform.RawValue
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.main.MainNode
@@ -34,12 +35,11 @@ class FeedNode(
     )
 ): Node<FeedNode.FeedTarget>(spotlight, nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
-    @Parcelize
+
     data class FeedTarget(
         val id: String,
         val recipe: Recipe
     )
-
 
     override fun buildChildNode(navTarget: FeedTarget, nodeContext: NodeContext): Node<*> =
         FeedCard(nodeContext, navTarget.recipe)

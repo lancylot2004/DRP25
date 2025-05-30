@@ -1,7 +1,9 @@
 package dev.lancy.drp25.data
 
 import arrow.core.toNonEmptyListOrNull
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class Recipe(
     val name: String,
     val description: String,
@@ -40,5 +42,5 @@ val example = Recipe(
         RecipeTag.Cuisine.Italian,
         RecipeTag.MealType.Dinner
     ),
-    imageURL = "https://example.com/recipe.jpg"
+    imageURL = "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg"
 )
