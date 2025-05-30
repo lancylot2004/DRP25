@@ -8,44 +8,44 @@ on:
     types: [published]
 
 jobs:
-#  # ─────── STAGE 1: CODE QUALITY ───────
-#  style:
-#    name: Lint / Style
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Run `detekt`
-#        run: ./gradlew detekt
-#
-#  # ─────── STAGE 2: TEST ───────
-#  test-android:
-#    name: Android Unit Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:testDebugUnitTest
-#
-#  test-ios:
-#    name: iOS Unit Tests
-#    needs: [style]
-#    runs-on: macos-15
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
-#
-#  test-integration:
-#    name: Integration Tests
-#    needs: [style]
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#      - run: echo "Run dummy integration tests here"
+  # ─────── STAGE 1: CODE QUALITY ───────
+  style:
+    name: Lint / Style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run `detekt`
+        run: ./gradlew detekt
+
+  # ─────── STAGE 2: TEST ───────
+  test-android:
+    name: Android Unit Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./gradlew :shared:testDebugUnitTest
+
+  test-ios:
+    name: iOS Unit Tests
+    needs: [style]
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./gradlew :shared:iosSimulatorArm64Test :shared:iosX64Test
+
+  test-integration:
+    name: Integration Tests
+    needs: [style]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Run dummy integration tests here"
 
   # ─────── STAGE 3: BUILD ───────
   build-android:
     name: Build Android APK
-#    needs: [test-android, test-integration]
+    needs: [test-android, test-integration]
     runs-on: ubuntu-latest
     env:
       STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
@@ -68,7 +68,7 @@ jobs:
 
   build-ios:
     name: Build iOS IPA
-#    needs: [test-ios, test-integration]
+    needs: [test-ios, test-integration]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
