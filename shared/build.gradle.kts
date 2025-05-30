@@ -5,6 +5,15 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlin.parcelize)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.detekt)
+}
+
+detekt {
+    toolVersion = "1.23.8"
+    config.setFrom(file("detekt.yml"))
+    buildUponDefaultConfig = true
 }
 
 kotlin {
@@ -13,22 +22,30 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_21)
         }
     }
-    
+
     listOf(
         iosX64(),
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "shared"
             isStatic = true
         }
     }
-    
+
     sourceSets {
+        iosMain.dependencies {
+            // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.darwin)
+        }
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+
+            // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.okhttp)
         }
 
         commonMain.dependencies {
@@ -39,6 +56,7 @@ kotlin {
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.material3)
+            implementation(libs.kotlinx.serialization)
 
             // Model-Driven Navigation | https://github.com/bumble-tech/appyx | Apache-2.0
             implementation(libs.appyx.interactions)
@@ -53,18 +71,42 @@ kotlin {
 
             // Functional | https://arrow-kt.io/ | Apache 2.0
             implementation(libs.arrow.core)
+
+            // Lucide Icons | https://github.com/composablehorizons/composeicons | MIT
+            //              | https://lucide.dev/ | ISC
+            implementation(libs.composables.icons.lucide)
+
+            // Async Client | https://github.com/ktorio/ktor | Apache-2.0
+            implementation(libs.ktor.client.auth)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.ws)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
+            // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
+            implementation(libs.kamel.image)
         }
     }
 }
 
 android {
     namespace = "dev.lancy.drp25"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk =
+        libs.versions.android.compileSdk
+            .get()
+            .toInt()
 
     defaultConfig {
         applicationId = "dev.lancy.drp25"
-        minSdk = libs.versions.android.minSdk.get().toInt()
-        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
+        targetSdk =
+            libs.versions.android.targetSdk
+                .get()
+                .toInt()
         versionCode = 1
         versionName = "1.0"
     }
@@ -75,8 +117,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("general") {
+            storeFile = file("../keystore.jks")
+            storePassword = System.getenv("ANDROID_STORE_PASS")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASS")
+        }
+    }
+
     buildTypes {
         getByName("release") {
+            signingConfig = signingConfigs.getByName("general")
             isMinifyEnabled = false
         }
     }
