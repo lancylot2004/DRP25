@@ -118,17 +118,17 @@ android {
     }
 
     signingConfigs {
-        create("general") {
-            storeFile = file("../keystore.jks")
-            storePassword = System.getenv("ANDROID_STORE_PASS")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            keyPassword = System.getenv("ANDROID_KEY_PASS")
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = System.getenv("STORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
         }
     }
 
     buildTypes {
-        getByName("release") {
-            signingConfig = signingConfigs.getByName("general")
+        release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
         }
     }
