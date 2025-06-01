@@ -49,6 +49,15 @@ platform :ios do
       keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"],
     )
 
+    increment_version_number(
+      version_number: ENV["APP_VERSION"],
+      xcodeproj: "./iosApp/iosApp.xcodeproj"
+    )
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M"),
+      xcodeproj: "iosApp/iosApp.xcodeproj"
+    )
+
     build_ios_app(
       project: "./iosApp/iosApp.xcodeproj",
       scheme: "iosApp",
@@ -56,6 +65,30 @@ platform :ios do
       output_directory: "./build",
       output_name: "deploy",
       destination: "generic/platform=iOS",
+      export_method: "app-store",
+    )
+  end
+
+  lane :test_deploy do
+    version = ENV["APP_VERSION"]
+    changelog = ENV["APP_CHANGELOG"] || "No changelog provided."
+
+    increment_build_number(
+      xcodeproj: "iosApp/iosApp.xcodeproj",
+      build_number: Time.now.strftime("%Y%m%d%H%M")
+    )
+
+    pilot(
+      api_key_path: "fastlane/key.json",
+      ipa: "./build/deploy.ipa",
+      app_platform: "ios",
+      changelog: changelog,
+      beta_app_feedback_email: "lancelot.liu23@imperial.ac.uk",
+      beta_app_description: "Test build v#{version} for QA",
+      distribute_external: true,
+      groups: ["Real People"],
+      skip_submission: false,
+      skip_waiting_for_build_processing: false
     )
   end
 end

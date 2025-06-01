@@ -1,4 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.konan.properties.loadProperties
+
+val properties = loadProperties("local.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -120,9 +123,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("keystore.jks")
-            storePassword = System.getenv("STORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            storePassword = properties.getProperty("android.keystore.password")
+            keyAlias = properties.getProperty("android.key.alias")
+            keyPassword = properties.getProperty("android.key.password")
         }
     }
 
