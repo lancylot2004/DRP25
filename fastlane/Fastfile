@@ -53,7 +53,10 @@ platform :ios do
       version_number: ENV["APP_VERSION"],
       xcodeproj: "./iosApp/iosApp.xcodeproj"
     )
-    increment_build_number(xcodeproj: "./iosApp/iosApp.xcodeproj")
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M"),
+      xcodeproj: "iosApp/iosApp.xcodeproj"
+    )
 
     build_ios_app(
       project: "./iosApp/iosApp.xcodeproj",
@@ -69,6 +72,11 @@ platform :ios do
   lane :test_deploy do
     version = ENV["APP_VERSION"]
     changelog = ENV["APP_CHANGELOG"] || "No changelog provided."
+
+    increment_build_number(
+      xcodeproj: "iosApp/iosApp.xcodeproj",
+      build_number: Time.now.strftime("%Y%m%d%H%M")
+    )
 
     pilot(
       api_key_path: "fastlane/key.json",
