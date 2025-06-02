@@ -19,3 +19,6 @@ captures
 /fastlane/test_output/report.html
 /fastlane/test_output/report.junit
 /fastlane/report.xml
+
+shared/keystore.jks
+fastlane/key.json

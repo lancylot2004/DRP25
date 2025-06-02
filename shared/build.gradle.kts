@@ -1,4 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.konan.properties.loadProperties
+
+val properties = loadProperties("local.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -118,17 +121,17 @@ android {
     }
 
     signingConfigs {
-        create("general") {
-            storeFile = file("../keystore.jks")
-            storePassword = System.getenv("ANDROID_STORE_PASS")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
-            keyPassword = System.getenv("ANDROID_KEY_PASS")
+        create("release") {
+            storeFile = file("keystore.jks")
+            storePassword = properties.getProperty("android.keystore.password")
+            keyAlias = properties.getProperty("android.key.alias")
+            keyPassword = properties.getProperty("android.key.password")
         }
     }
 
     buildTypes {
-        getByName("release") {
-            signingConfig = signingConfigs.getByName("general")
+        release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
         }
     }

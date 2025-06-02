@@ -33,7 +33,29 @@ platform :ios do
   end
 
   lane :release do
-    gym(
+    create_keychain(
+      name: "keychain",
+      password: ENV["MATCH_KEYCHAIN_PASSWORD"],
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      add_to_search_list: true
+    )
+
+    match(
+      type: "appstore",
+      readonly: true,
+      keychain_name: "keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"],
+    )
+
+    increment_version_number(
+      version_number: ENV["APP_VERSION"],
+      xcodeproj: "./iosApp/iosApp.xcodeproj"
+    )
+    increment_build_number(xcodeproj: "./iosApp/iosApp.xcodeproj")
+
+    build_ios_app(
       project: "./iosApp/iosApp.xcodeproj",
       scheme: "iosApp",
       configuration: "Release",
@@ -41,6 +63,24 @@ platform :ios do
       output_name: "deploy",
       destination: "generic/platform=iOS",
       export_method: "app-store",
+    )
+  end
+
+  lane :test_deploy do
+    version = ENV["APP_VERSION"]
+    changelog = ENV["APP_CHANGELOG"] || "No changelog provided."
+
+    pilot(
+      api_key_path: "fastlane/key.json",
+      ipa: "./build/deploy.ipa",
+      app_platform: "ios",
+      changelog: changelog,
+      beta_app_feedback_email: "lancelot.liu23@imperial.ac.uk",
+      beta_app_description: "Test build v#{version} for QA",
+      distribute_external: true,
+      groups: ["Real People"],
+      skip_submission: false,
+      skip_waiting_for_build_processing: false
     )
   end
 end
