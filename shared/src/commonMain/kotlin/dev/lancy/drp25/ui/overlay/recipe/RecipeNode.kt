@@ -1,51 +1,77 @@
 package dev.lancy.drp25.ui.overlay.recipe
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.material.Divider
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.HorizontalRuler
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Carrot
+import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Star
+import com.composables.icons.lucide.Square
+import com.composables.icons.lucide.SquareCheckBig
+import com.composables.icons.lucide.SquareDashedBottom
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
-import dev.lancy.drp25.ui.main.feed.round
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
+import dev.lancy.drp25.utilities.Animation
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import io.kamel.core.ExperimentalKamelApi
-import io.kamel.core.Resource
-import io.kamel.image.KamelImage
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
 
@@ -101,7 +127,11 @@ class RecipeNode(
                 )
             }
 
-            Column(Modifier.padding(Size.Padding)) { ColumnContent() }
+            Column(
+                Modifier
+                    .padding(Size.Padding)
+                    .animateContentSize(),
+            ) { ColumnContent() }
         }
     }
 
@@ -121,8 +151,69 @@ class RecipeNode(
             recipe.tags.take(3).joinToString(),
         )
 
-        HorizontalRuler()
+        Section("Ingredients") {
+            IconText(Lucide.Square, "2 Century Eggs", "2 Century Eggs")
+            IconText(Lucide.SquareCheckBig, "10kg Pork Mince", "10kg Pork Mince")
+            IconText(Lucide.SquareDashedBottom, "Salt", "Salt")
+        }
 
+        Section("Preparation") {
+            IconText(Lucide.Square, "Step 1", "Do some stuff.")
+        }
 
+        Section("About This Recipe") {
+            Text(
+                "The chef is from this tiny little village in France, and has refined his culinary skills by eating grapes in the vineyard every single morning. This dish is inspired by Martians who invited the young chef to Mars for a taster session in potato growing, and his memories thereof.",
+                style = Typography.bodyMedium,
+                color = ColourScheme.onBackground,
+            )
+        }
+    }
+
+    @Composable
+    private fun ColumnScope.Section(
+        title: String,
+        content: @Composable ColumnScope.() -> Unit,
+    ) {
+        var expanded by remember { mutableStateOf(true) }
+
+        Column {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    title,
+                    style = Typography.titleSmall,
+                    color = ColourScheme.onBackground,
+                )
+
+                IconButton(onClick = { expanded = !expanded }) {
+                    val rotationAngle by animateFloatAsState(
+                        targetValue = if (expanded) 180f else 0f,
+                        animationSpec = Animation.medium(),
+                        label = "\"$title\" Chevron Rotation",
+                    )
+
+                    Icon(
+                        Lucide.ChevronUp,
+                        contentDescription = "Expand/Collapse",
+                        modifier = Modifier.rotate(rotationAngle),
+                        tint = ColourScheme.onBackground,
+                    )
+                }
+            }
+
+            Divider(color = ColourScheme.outlineVariant)
+
+            Spacer(Modifier.height(Size.Padding))
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut(),
+        ) { Column(verticalArrangement = Arrangement.spacedBy(Size.Spacing)) { content() } }
     }
 }
