@@ -37,6 +37,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
@@ -104,37 +105,19 @@ class FeedCard(
             ) {
                 Text(recipe.name, style = Typography.titleMedium, color = ColourScheme.onBackground)
 
-                val keyInfo: @Composable (ImageVector, String, String) -> Unit =
-                    { icon, desc, text ->
-                        Row {
-                            Icon(
-                                icon,
-                                contentDescription = desc,
-                                modifier = Modifier.padding(Size.CornerSmall),
-                                tint = ColourScheme.onBackground,
-                            )
-                            Text(
-                                text,
-                                modifier = Modifier.align(Alignment.CenterVertically),
-                                style = Typography.bodyMedium,
-                                color = ColourScheme.onBackground,
-                            )
-                        }
-                    }
-
-                keyInfo(
+                IconText(
                     Lucide.Clock,
                     "Cooking Time",
                     "${recipe.cookingTime} minutes",
                 )
 
-                keyInfo(
+                IconText(
                     Lucide.Carrot,
                     "Tags",
                     recipe.tags.take(3).joinToString(),
                 )
 
-                keyInfo(
+                IconText(
                     Lucide.Star,
                     "Rating",
                     "${recipe.rating.round(1)} / 5",
