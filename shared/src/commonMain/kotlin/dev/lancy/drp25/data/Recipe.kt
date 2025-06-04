@@ -13,10 +13,20 @@ data class Recipe(
     val cleanupTime: Int?,
     val calories: Int?,
     val macros: Map<String, Double> = mapOf(),
+    val keyIngredients: List<String>,
     val sections: List<RecipeSection>,
+    val effortLevel: RecipeEffortLevel,
     val tags: List<RecipeTag>,
     val imageURL: String? = null,
 )
+
+enum class RecipeEffortLevel(val displayName: String) {
+    LOW_EFFORT("Low effort"),
+    QUICK_EFFORT("Quick prep"),
+    MEDIUM_EFFORT("Medium effort"),
+    HIGH_EFFORT("High effort"),
+    FATALITY("Fatality"),
+}
 
 val example = Recipe(
     name = "Example Recipe",
@@ -27,6 +37,7 @@ val example = Recipe(
     cleanupTime = 15,
     calories = 500,
     macros = mapOf("Protein" to 20.0, "Carbs" to 60.0, "Fats" to 10.0),
+    keyIngredients = listOf("chicken, potatoes"),
     sections = listOf(
         RecipeSection(
             title = "Preparation",
@@ -37,6 +48,7 @@ val example = Recipe(
             steps = listOf(RecipeStep("Cook the meat in a pan."), RecipeStep("Add vegetables and stir-fry.")).toNonEmptyListOrNull()!!
         )
     ),
+    effortLevel = RecipeEffortLevel.LOW_EFFORT,
     tags = listOf(
         RecipeTag.Diet.Vegan,
         RecipeTag.Cuisine.Italian,
