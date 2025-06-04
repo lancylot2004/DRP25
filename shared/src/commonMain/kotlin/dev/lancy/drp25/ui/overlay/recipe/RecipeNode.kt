@@ -38,6 +38,7 @@ import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.main.feed.round
 import dev.lancy.drp25.ui.shared.components.IconText
+import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
@@ -106,6 +107,8 @@ class RecipeNode(
 
     @Composable
     private fun ColumnScope.ColumnContent() {
+        StarRating(3.5f)
+
         IconText(
             Lucide.Clock,
             "Cooking Time",
