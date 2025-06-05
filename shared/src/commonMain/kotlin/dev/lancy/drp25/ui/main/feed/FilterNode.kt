@@ -2,7 +2,10 @@ package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Slider
@@ -14,9 +17,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import dev.lancy.drp25.ui.main.MainNode
+import dev.lancy.drp25.utilities.DishCuisine
+import dev.lancy.drp25.utilities.DishDiet
+import dev.lancy.drp25.utilities.DishType
+import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 
@@ -51,7 +60,68 @@ class FilterNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
 
             Text("Type of meal")
             FlowRow {
+                DishType.entries.forEach { dish ->
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            androidx.compose.material.Text(
+                                dish.displayName,
+                                style = Typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.defaultMinSize(minHeight = 28.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.LightGray,
+                            labelColor = Color.Black,
+                        ),
+                        shape = Shape.RoundedLarge,
+                        elevation = AssistChipDefaults.assistChipElevation(),
+                    )
+                }
+            }
 
+            Text("Cuisine")
+            FlowRow {
+                DishCuisine.entries.forEach { cuisine ->
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            androidx.compose.material.Text(
+                                cuisine.displayName,
+                                style = Typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.defaultMinSize(minHeight = 28.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.LightGray,
+                            labelColor = Color.Black,
+                        ),
+                        shape = Shape.RoundedLarge,
+                        elevation = AssistChipDefaults.assistChipElevation(),
+                    )
+                }
+            }
+
+            Text("Dietary needs")
+            FlowRow {
+                DishDiet.entries.forEach { diet ->
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            androidx.compose.material.Text(
+                                diet.displayName,
+                                style = Typography.bodySmall
+                            )
+                        },
+                        modifier = Modifier.defaultMinSize(minHeight = 28.dp),
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Color.LightGray,
+                            labelColor = Color.Black,
+                        ),
+                        shape = Shape.RoundedLarge,
+                        elevation = AssistChipDefaults.assistChipElevation(),
+                    )
+                }
             }
 
         }
