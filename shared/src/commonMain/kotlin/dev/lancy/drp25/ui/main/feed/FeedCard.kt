@@ -2,26 +2,42 @@ package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.Icon
 import androidx.compose.material.Text
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
+import com.bumble.appyx.navigation.modality.NodeContext
+import com.bumble.appyx.navigation.node.LeafNode
+import com.composables.icons.lucide.Carrot
+import com.composables.icons.lucide.ChefHat
+import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Users
+import com.composables.icons.lucide.Zap
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
@@ -31,18 +47,6 @@ import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import kotlin.math.round
-
-// Lucide icons
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Clock
-import com.composables.icons.lucide.Carrot
-import com.composables.icons.lucide.ChefHat
-import com.composables.icons.lucide.Users
-import com.composables.icons.lucide.Zap
-
-import com.bumble.appyx.navigation.modality.NodeContext
-import com.bumble.appyx.navigation.node.LeafNode
 
 class FeedCard(
     nodeContext: NodeContext,
@@ -54,33 +58,20 @@ class FeedCard(
 
         Box(
             modifier = modifier
-                    .fillMaxSize()
-                    .padding(Size.BigPadding)
-                    .clip(Shape.RoundedLarge)
-                    .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge),
+                .fillMaxSize()
+                .padding(Size.BigPadding)
+                .border(1.dp, ColourScheme.secondary, Shape.RoundedLarge)
+                .clip(Shape.RoundedLarge),
         ) {
             // Background image
             KamelImage(
-                resource = asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg"),
+                resource = { asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg") },
                 contentDescription = recipe.name,
-                modifier = Modifier.fillMaxSize().haze(state = hazeState),
-                contentScale = ContentScale.Crop,
-                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
-            )
-
-            // Gradient overlay
-            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .align(Alignment.BottomStart)
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0.6f to Color.Transparent,
-                                0.8f to Color.Black.copy(alpha = 0.8f)
-                            )
-                        )
-                    )
+                    .haze(state = hazeState),
+                contentScale = ContentScale.Crop,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             )
 
             // Content
@@ -88,29 +79,23 @@ class FeedCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomStart)
-                    .padding(start = Size.Padding, bottom = Size.BarLarge),
-                horizontalAlignment = Alignment.Start
+                    .hazeChild(hazeState, style = HazeDefaults.style(tint = ColourScheme.background.copy(alpha = 0.3f)))
+                    .padding(Size.Padding),
+                horizontalAlignment = Alignment.Start,
             ) {
-                // Title of recipe
                 Text(
                     recipe.name,
                     style = Typography.titleMedium,
                     color = ColourScheme.onBackground
                 )
 
-                Rating.ColoredStarRating(
-                    rating = recipe.rating,
-                    textStyle = Typography.titleSmall,
-                    textColor = ColourScheme.onBackground,
-                    modifier = Modifier
-                        .padding(vertical = Size.CornerSmall)
-                        .height(24.dp)
-                )
+                StarRating(recipe.rating.toFloat())
 
-                // First line: time, calories, servings
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Size.Padding),
+                    itemVerticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
 
@@ -119,25 +104,17 @@ class FeedCard(
                     }
 
                     IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
-                }
 
-                Spacer(Modifier.height(6.dp))
-
-                // Second line: key ingredients, effort level
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
                     IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
                     IconText(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
                 }
 
                 // Chips
-                Row(
+                FlowRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     recipe.tags.take(3).forEach { tag ->
                         AssistChip(
@@ -151,21 +128,17 @@ class FeedCard(
                             modifier = Modifier.defaultMinSize(minHeight = 28.dp),
                             colors = AssistChipDefaults.assistChipColors(
                                 containerColor = Color.LightGray,
-                                labelColor = Color.Black
+                                labelColor = Color.Black,
                             ),
                             shape = Shape.RoundedLarge,
-                            elevation = AssistChipDefaults.assistChipElevation()
+                            elevation = AssistChipDefaults.assistChipElevation(),
                         )
                     }
                 }
+
+                // The navigation bar; counteract the padding of the outer box and the column.
+                Spacer(Modifier.height(Size.BarLarge - Size.BigPadding - Size.Padding))
             }
         }
     }
-}
-
-// Utility rounding function
-fun Double.round(decimals: Int): Double {
-    var multiplier = 1.0
-    repeat(decimals) { multiplier *= 10 }
-    return round(this * multiplier) / multiplier
 }
