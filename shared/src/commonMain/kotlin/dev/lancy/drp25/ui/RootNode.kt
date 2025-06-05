@@ -5,38 +5,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.backstack.BackStackModel
+import com.bumble.appyx.components.backstack.operation.pop
 import com.bumble.appyx.components.backstack.operation.push
 import com.bumble.appyx.components.backstack.operation.replace
+import com.bumble.appyx.components.backstack.ui.fader.BackStackFader
 import com.bumble.appyx.components.backstack.ui.slider.BackStackSlider
 import com.bumble.appyx.navigation.composable.AppyxNavigationContainer
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
+import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.RootNode.RootTarget.LoggedOut
 import dev.lancy.drp25.ui.RootNode.RootTarget.Main
-import dev.lancy.drp25.ui.RootNode.RootTarget.Overlay
+import dev.lancy.drp25.ui.RootNode.RootTarget.Recipe
 import dev.lancy.drp25.ui.loggedOut.LoggedOutNode
 import dev.lancy.drp25.ui.main.MainNode
-import dev.lancy.drp25.ui.overlay.OverlayNode
+import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.currentTarget
 
-private val theme = darkColorScheme()
-
 class RootNode(
     nodeContext: NodeContext,
-    private val backStack: BackStack<RootTarget> =
-        BackStack(
-            model =
-                BackStackModel(
-                    // TODO: Update after authentication is finalised.
-                    initialTargets = listOf(Main),
-                    savedStateMap = nodeContext.savedStateMap,
-                ),
-            visualisation = { BackStackSlider(it) },
+    private val backStack: BackStack<RootTarget> = BackStack(
+        model = BackStackModel(
+            // TODO: Update after authentication is finalised.
+            initialTargets = listOf(Main),
+            savedStateMap = nodeContext.savedStateMap,
         ),
+        visualisation = { BackStackFader(it) },
+    ),
 ) : Node<RootNode.RootTarget>(backStack, nodeContext),
     NavProvider<RootNode.RootTarget> {
     @Parcelize
@@ -54,20 +53,19 @@ class RootNode(
         data object LoggedOut : RootTarget()
 
         /**
-         * [Overlay] positions any page over either [Main] or [LoggedOut].
+         * [Recipe] is an overlay that appears above the [Main] page.
          */
-        data object Overlay : RootTarget()
+        data object Recipe : RootTarget()
     }
 
     override fun buildChildNode(
         navTarget: RootTarget,
         nodeContext: NodeContext,
-    ): Node<*> =
-        when (navTarget) {
-            Main -> MainNode(nodeContext, this)
-            LoggedOut -> LoggedOutNode(nodeContext)
-            Overlay -> OverlayNode(nodeContext)
-        }
+    ): Node<*> = when (navTarget) {
+        Main -> MainNode(nodeContext, this)
+        LoggedOut -> LoggedOutNode(nodeContext)
+        Recipe -> RecipeNode(nodeContext, example, this) { backStack.pop() }
+    }
 
     @Composable
     override fun Content(modifier: Modifier) {
@@ -81,7 +79,7 @@ class RootNode(
         attachChild<Node<C>> {
             when (backStack.currentTarget()) {
                 // Destroy [LoggedOut] and [Overlay] since it never needs to be preserved.
-                LoggedOut, Overlay -> backStack.replace(target)
+                LoggedOut, Recipe -> backStack.replace(target)
                 Main ->
                     when (target) {
                         // Destroy [Main] if the user logs out.
