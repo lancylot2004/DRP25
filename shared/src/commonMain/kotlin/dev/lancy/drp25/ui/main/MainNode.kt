@@ -45,6 +45,7 @@ import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.feed.FeedNode
+import dev.lancy.drp25.ui.main.feed.FilterNode
 import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -101,7 +102,7 @@ class MainNode(
         data object Me : MainTarget(
             "Me",
             { Lucide.CircleUserRound },
-            { context, parent -> RecipeNode(context, example) },
+            { context, parent -> FilterNode(context, parent) },
         )
 
         companion object : StaticNavTarget {
