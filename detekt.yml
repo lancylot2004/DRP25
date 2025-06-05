@@ -2,3 +2,6 @@ config:
   validation: true
   warningsAsErrors: false
   excludes: ''
+style:
+  MultilineExpressionWrapping:
+    active: false
