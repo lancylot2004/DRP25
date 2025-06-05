@@ -1,12 +1,15 @@
 package dev.lancy.drp25.ui.main.feed
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.SpotlightModel
 import com.bumble.appyx.components.spotlight.ui.slider.SpotlightSlider
-import com.bumble.appyx.components.spotlight.ui.sliderscale.SpotlightSliderScale
+import com.bumble.appyx.interactions.gesture.GestureSettleConfig
 import com.bumble.appyx.navigation.composable.AppyxNavigationContainer
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
@@ -25,7 +28,7 @@ class FeedNode(
             savedStateMap = mapOf(),
         ),
         visualisation = {
-            SpotlightSliderScale(
+            SpotlightSlider(
                 uiContext = it,
                 initialState = SpotlightModel.State(
                     positions = listOf(),
@@ -33,7 +36,24 @@ class FeedNode(
                 ),
             )
         },
-        gestureFactory = { bounds -> SpotlightSlider.Gestures(bounds, orientation = Orientation.Horizontal) },
+
+        // Animations
+        animationSpec = tween(
+            durationMillis = 40,
+            easing = FastOutSlowInEasing
+        ),
+
+        gestureFactory = { bounds -> SpotlightSlider.Gestures(
+            bounds,
+            orientation = Orientation.Horizontal
+        )},
+
+        // Incomplete gesture configuration
+        gestureSettleConfig = GestureSettleConfig(
+            completionThreshold = 0.3f,
+            completeGestureSpec = spring(),
+            revertGestureSpec = spring(),
+        ),
     ),
 ) : Node<FeedNode.FeedTarget>(spotlight, nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
