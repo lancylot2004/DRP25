@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Carrot
+import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
@@ -67,6 +68,9 @@ import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.RootNode
+import dev.lancy.drp25.ui.shared.NavConsumer
+import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.Animation
@@ -81,7 +85,10 @@ import io.kamel.image.asyncPainterResource
 class RecipeNode(
     nodeContext: NodeContext,
     private val recipe: Recipe,
-) : LeafNode(nodeContext) {
+    parent: RootNode,
+    private val back: () -> Unit,
+) : LeafNode(nodeContext),
+    NavConsumer<RootNode.RootTarget, RootNode> by NavConsumerImpl(parent) {
     @OptIn(ExperimentalKamelApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
@@ -116,8 +123,19 @@ class RecipeNode(
                         .background(Brush.verticalGradient(
                             .3f to Color.Transparent,
                             1f to ColourScheme.background.copy(alpha = 0.8f),
-                        ))
+                        )),
                 )
+
+                IconButton(
+                    modifier = Modifier.align(Alignment.TopStart),
+                    onClick = back
+                ) {
+                    Icon(
+                        Lucide.ChevronLeft,
+                        contentDescription = "Back",
+                        tint = ColourScheme.onBackground
+                    )
+                }
 
                 Text(
                     "Pork and Century Egg Congee",

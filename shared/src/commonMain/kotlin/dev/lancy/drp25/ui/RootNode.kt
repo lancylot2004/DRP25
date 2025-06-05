@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.backstack.BackStackModel
+import com.bumble.appyx.components.backstack.operation.pop
 import com.bumble.appyx.components.backstack.operation.push
 import com.bumble.appyx.components.backstack.operation.replace
 import com.bumble.appyx.components.backstack.ui.fader.BackStackFader
@@ -60,12 +61,11 @@ class RootNode(
     override fun buildChildNode(
         navTarget: RootTarget,
         nodeContext: NodeContext,
-    ): Node<*> =
-        when (navTarget) {
-            Main -> MainNode(nodeContext, this)
-            LoggedOut -> LoggedOutNode(nodeContext)
-            Recipe -> RecipeNode(nodeContext, example)
-        }
+    ): Node<*> = when (navTarget) {
+        Main -> MainNode(nodeContext, this)
+        LoggedOut -> LoggedOutNode(nodeContext)
+        Recipe -> RecipeNode(nodeContext, example, this) { backStack.pop() }
+    }
 
     @Composable
     override fun Content(modifier: Modifier) {
