@@ -3,6 +3,7 @@ package dev.lancy.drp25.ui.main.feed
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,11 +21,13 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
@@ -39,6 +42,9 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.RootNode
+import dev.lancy.drp25.ui.shared.NavConsumer
+import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.ColourScheme
@@ -47,21 +53,32 @@ import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import kotlinx.coroutines.launch
 
 class FeedCard(
     nodeContext: NodeContext,
+    parent: FeedNode,
     private val recipe: Recipe,
-) : LeafNode(nodeContext) {
+) : LeafNode(nodeContext),
+    NavConsumer<Recipe, FeedNode> by NavConsumerImpl(parent){
     @Composable
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
+        val scope = rememberCoroutineScope()
 
         Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(Size.BigPadding)
                 .border(1.dp, ColourScheme.secondary, Shape.RoundedLarge)
-                .clip(Shape.RoundedLarge),
+                .clip(Shape.RoundedLarge)
+                .clickable(role = Role.Button) {
+                    scope.launch {
+                        this@FeedCard
+                            .navParent.navParent
+                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe)
+                    }
+                },
         ) {
             // Background image
             KamelImage(

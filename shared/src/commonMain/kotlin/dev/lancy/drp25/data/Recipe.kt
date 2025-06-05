@@ -1,6 +1,7 @@
 package dev.lancy.drp25.data
 
 import arrow.core.toNonEmptyListOrNull
+import dev.lancy.drp25.ui.shared.NavTarget
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -18,7 +19,7 @@ data class Recipe(
     val effortLevel: RecipeEffortLevel,
     val tags: List<RecipeTag>,
     val imageURL: String? = null,
-)
+): NavTarget
 
 enum class RecipeEffortLevel(val displayName: String) {
     LOW_EFFORT("Low effort"),
