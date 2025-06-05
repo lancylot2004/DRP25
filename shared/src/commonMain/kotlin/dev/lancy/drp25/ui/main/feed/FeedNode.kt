@@ -25,7 +25,7 @@ class FeedNode(
             savedStateMap = mapOf(),
         ),
         visualisation = {
-            SpotlightSliderScale(
+            SpotlightSlider(
                 uiContext = it,
                 initialState = SpotlightModel.State(
                     positions = listOf(),
