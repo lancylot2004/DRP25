@@ -23,7 +23,8 @@ import androidx.compose.material3.AssistChipDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.lancy.drp25.data.Recipe
-import dev.lancy.drp25.ui.components.Rating
+import dev.lancy.drp25.ui.shared.components.IconText
+import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
@@ -47,20 +48,16 @@ class FeedCard(
     nodeContext: NodeContext,
     private val recipe: Recipe,
 ) : LeafNode(nodeContext) {
-
     @Composable
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
 
         Box(
             modifier = modifier
-                .fillMaxSize()
-                .padding(
-                    start = Size.Padding,
-                    top = Size.Padding,
-                    end = Size.Padding,
-                )
-                .clip(Shape.RoundedLarge)
+                    .fillMaxSize()
+                    .padding(Size.BigPadding)
+                    .clip(Shape.RoundedLarge)
+                    .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge),
         ) {
             // Background image
             KamelImage(
@@ -110,33 +107,18 @@ class FeedCard(
                         .height(24.dp)
                 )
 
-                val keyInfo: @Composable (ImageVector, String, String) -> Unit =
-                    { icon, desc, text ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                icon,
-                                contentDescription = desc,
-                                modifier = Modifier.padding(end = Size.CornerSmall),
-                                tint = ColourScheme.onBackground
-                            )
-                            Text(
-                                text,
-                                style = Typography.bodyMedium,
-                                color = ColourScheme.onBackground,
-                            )
-                        }
-                    }
-
                 // First line: time, calories, servings
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    keyInfo(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
+                    IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
+
                     recipe.calories?.let {
-                        keyInfo(Lucide.Zap, "Calories", "$it cal")
+                        IconText(Lucide.Zap, "Calories", "$it cal")
                     }
-                    keyInfo(Lucide.Users, "Servings", "${recipe.portions} portions")
+
+                    IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
                 }
 
                 Spacer(Modifier.height(6.dp))
@@ -146,16 +128,15 @@ class FeedCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    keyInfo(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
-                    keyInfo(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
+                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
+                    IconText(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
                 }
-                val scrollState = rememberScrollState()
 
                 // Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .horizontalScroll(scrollState),
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     recipe.tags.take(3).forEach { tag ->

@@ -13,9 +13,6 @@ import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeStyle
 
 object Size {
-    /** *Final* Typical margin value, typically used to slightly expand containers. */
-    val Margin = 4.dp
-
     /** *Final* Typical padding value. */
     val Padding = 8.dp
 
@@ -23,7 +20,7 @@ object Size {
     val BigPadding = 16.dp
 
     /** *Final* Typical spacing value. */
-    val Spacing = 8.dp
+    val Spacing = 4.dp
 
     /** *Final* Big spacing value. Usually used in prominent lists. */
     val BigSpacing = 24.dp
@@ -83,6 +80,8 @@ object Animation {
     const val DelayMedium = 300
 
     fun <T> short(): AnimationSpec<T> = tween(50, 100)
+
+    fun <T> medium(): AnimationSpec<T> = tween(300, 100)
 
     /** Animation to reach a end state, long. */
     val EnterLong: AnimationSpec<Float> =
