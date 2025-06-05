@@ -11,4 +11,5 @@ data class RecipeSection(
 @Serializable
 data class RecipeStep(
     val description: String,
+    val imageURL: String? = null,
 )
