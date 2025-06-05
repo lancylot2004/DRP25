@@ -3,7 +3,6 @@ package dev.lancy.drp25.ui.main.feed
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -23,7 +22,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
-import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.components.Rating
 import dev.lancy.drp25.utilities.ColourScheme
@@ -58,13 +56,11 @@ class FeedCard(
             modifier = modifier
                 .fillMaxSize()
                 .padding(
-                    start = Size.BigPadding,
-                    top = Size.BigPadding,
-                    end = Size.BigPadding,
-                    bottom = Size.BigPadding + 56.dp
+                    start = Size.Padding,
+                    top = Size.Padding,
+                    end = Size.Padding,
                 )
                 .clip(Shape.RoundedLarge)
-                .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge)
         ) {
             // Background image
             KamelImage(
@@ -84,7 +80,7 @@ class FeedCard(
                         Brush.verticalGradient(
                             colorStops = arrayOf(
                                 0.6f to Color.Transparent,
-                                0.85f to Color.Black
+                                0.8f to Color.Black.copy(alpha = 0.8f)
                             )
                         )
                     )
@@ -94,11 +90,11 @@ class FeedCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(1f / 2.5f)
                     .align(Alignment.BottomStart)
-                    .padding(horizontal = Size.Padding, vertical = Size.BarLarge),
+                    .padding(start = Size.Padding, bottom = Size.BarLarge),
                 horizontalAlignment = Alignment.Start
             ) {
+                // Title of recipe
                 Text(
                     recipe.name,
                     style = Typography.titleMedium,
@@ -153,17 +149,9 @@ class FeedCard(
                     keyInfo(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
                     keyInfo(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
                 }
-            }
-
-            // Tag Chips at bottom
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomStart)
-                    .padding(Size.Padding)
-                    .hazeChild(hazeState)
-            ) {
                 val scrollState = rememberScrollState()
+
+                // Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
