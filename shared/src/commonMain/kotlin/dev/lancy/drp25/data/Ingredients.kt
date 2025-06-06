@@ -115,3 +115,48 @@ object UnitConverter {
         }
     }
 }
+
+
+// Format ingredients
+fun formatIngredientDisplay(ingredient: Ingredient): String {
+    val quantityFormatted = formatDouble(ingredient.quantity)
+    val unitLabel = when (val unit = ingredient.unit) {
+        is Unit.Gram -> "g"
+        is Unit.Kilogram -> "kg"
+        is Unit.Ounce -> "oz"
+        is Unit.Pound -> "lb"
+        is Unit.Milliliter -> "ml"
+        is Unit.Liter -> "L"
+        is Unit.Teaspoon -> "tsp"
+        is Unit.Tablespoon -> "tbsp"
+        is Unit.Cup -> "cup"
+        is Unit.Slice -> "slice"
+        is Unit.Pinch -> "pinch"
+        is Unit.Dash -> "dash"
+        is Unit.Other -> unit.name
+        is Unit.Piece -> ""
+    }
+
+    return if (unitLabel.isNotEmpty()) {
+        "$quantityFormatted $unitLabel ${ingredient.name}"
+    } else {
+        "$quantityFormatted ${ingredient.name}"
+    }
+}
+
+
+fun formatDouble(quantity: Double): String {
+    val intPart = quantity.toInt()
+    return if (quantity == intPart.toDouble()) {
+        intPart.toString()
+    } else {
+        // Fallback: format manually with 2 decimals
+        val str = quantity.toString()
+        // Keep only 2 decimals max
+        val dotIndex = str.indexOf('.')
+        if (dotIndex == -1) return str
+        val endIndex = (dotIndex + 3).coerceAtMost(str.length)
+        str.substring(0, endIndex).trimEnd('0').trimEnd('.')
+    }
+}
+

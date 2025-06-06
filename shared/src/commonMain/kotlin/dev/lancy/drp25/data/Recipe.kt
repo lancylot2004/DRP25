@@ -1,7 +1,13 @@
 package dev.lancy.drp25.data
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import arrow.core.toNonEmptyListOrNull
 import dev.lancy.drp25.ui.shared.NavTarget
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -69,3 +75,20 @@ val example = Recipe(
     ),
     imageURL = "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg"
 )
+
+object GlobalRecipeState {
+    // Simple mutable state for selected recipe
+    var selectedRecipe by mutableStateOf<Recipe?>(null)
+
+    // StateFlow for reactive updates (optional - use if you need reactive updates)
+    private val _selectedRecipeFlow = MutableStateFlow<Recipe?>(null)
+    val selectedRecipeFlow: StateFlow<Recipe?> = _selectedRecipeFlow.asStateFlow()
+
+//    // Method to update selected recipe
+//    fun setSelectedRecipe(recipe: Recipe?) {
+//        selectedRecipe = recipe
+//        _selectedRecipeFlow.value = recipe
+//    }
+//    // Method to get selected recipe safely
+//    fun getSelectedRecipe(): Recipe? = selectedRecipe
+}

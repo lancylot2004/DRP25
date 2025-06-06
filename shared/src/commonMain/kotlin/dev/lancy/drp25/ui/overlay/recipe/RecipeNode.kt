@@ -67,7 +67,9 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.lancy.drp25.data.GlobalRecipeState
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.formatIngredientDisplay
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -84,7 +86,7 @@ import io.kamel.image.asyncPainterResource
 
 class RecipeNode(
     nodeContext: NodeContext,
-    private val recipe: Recipe,
+    private var recipe: Recipe,
     parent: RootNode,
     private val back: () -> Unit,
 ) : LeafNode(nodeContext),
@@ -94,13 +96,20 @@ class RecipeNode(
     override fun Content(modifier: Modifier) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             val hazeState = remember { HazeState() }
+            recipe = GlobalRecipeState.selectedRecipe!!
 
             KamelImageBox(
                 resource = {
-                    asyncPainterResource(
-                        "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg",
-                        filterQuality = FilterQuality.High
-                    )
+                    recipe.imageURL?.let {
+                        asyncPainterResource(
+                            it,
+                            filterQuality = FilterQuality.High
+                        )
+                    }!!
+//                    asyncPainterResource(
+//                        "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg",
+//                        filterQuality = FilterQuality.High
+//                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,7 +147,7 @@ class RecipeNode(
                 }
 
                 Text(
-                    "Pork and Century Egg Congee",
+                    recipe.name,
                     modifier = Modifier
                         .hazeChild(hazeState, style = HazeStyle(blurRadius = 2.dp, noiseFactor = 10f))
                         .clip(Shape.RoundedMedium)
@@ -173,18 +182,41 @@ class RecipeNode(
         )
 
         Section("Ingredients") {
-            IconText(Lucide.Square, "2 Century Eggs", "2 Century Eggs")
-            IconText(Lucide.SquareCheckBig, "10kg Pork Mince", "10kg Pork Mince")
-            IconText(Lucide.SquareDashedBottom, "Salt", "Salt")
+            Section("Ingredients") {
+                recipe.ingredients.forEach { ingredient ->
+                    val formatted = formatIngredientDisplay(ingredient)
+                    IconText(Lucide.Square, formatted, formatted)
+                }
+            }
+
         }
 
+//        Section("Ingredients") {
+//            IconText(Lucide.Square, "2 Century Eggs", "2 Century Eggs")
+//            IconText(Lucide.SquareCheckBig, "10kg Pork Mince", "10kg Pork Mince")
+//            IconText(Lucide.SquareDashedBottom, "Salt", "Salt")
+//        }
+
         Section("Preparation") {
-            IconText(Lucide.Square, "Step 1", "Do some stuff.")
+            recipe.sections.forEach { section ->
+                Section(section.title) {
+                    section.steps.forEachIndexed { index, step ->
+                        val stepTitle = "Step ${index + 1}"
+                        val stepDescription = step.description
+                        IconText(Lucide.Square, stepTitle, stepDescription)
+                    }
+                }
+            }
         }
+
+//        Section("Preparation") {
+//            IconText(Lucide.Square, "Step 1", "Do some stuff.")
+//        }
 
         Section("About This Recipe") {
             Text(
-                "The chef is from this tiny little village in France, and has refined his culinary skills by eating grapes in the vineyard every single morning. This dish is inspired by Martians who invited the young chef to Mars for a taster session in potato growing, and his memories thereof.",
+                recipe.description,
+                //"The chef is from this tiny little village in France, and has refined his culinary skills by eating grapes in the vineyard every single morning. This dish is inspired by Martians who invited the young chef to Mars for a taster session in potato growing, and his memories thereof.",
                 style = Typography.bodyMedium,
                 color = ColourScheme.onBackground,
             )

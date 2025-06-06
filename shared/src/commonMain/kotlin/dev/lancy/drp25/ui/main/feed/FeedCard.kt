@@ -41,6 +41,7 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.lancy.drp25.data.GlobalRecipeState
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
@@ -74,11 +75,14 @@ class FeedCard(
                 .clip(Shape.RoundedLarge)
                 .clickable(role = Role.Button) {
                     scope.launch {
+                        // Set the selected recipe globally
+                        GlobalRecipeState.selectedRecipe = recipe
+                        // Navigate to recipe detail page
                         this@FeedCard
                             .navParent.navParent
                             .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe)
                     }
-                },
+                }
         ) {
             // Background image
             KamelImage(
