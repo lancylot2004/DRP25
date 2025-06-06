@@ -59,6 +59,7 @@ import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Diamond
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Square
 import com.composables.icons.lucide.SquareCheckBig
@@ -78,13 +79,16 @@ import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.realm
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
+import org.mongodb.kbson.ObjectId
+import io.realm.kotlin.ext.query
 
 class RecipeNode(
     nodeContext: NodeContext,
-    private val recipe: Recipe,
+    private val recipeID: ObjectId,
     parent: RootNode,
     private val back: () -> Unit,
 ) : LeafNode(nodeContext),
@@ -94,13 +98,13 @@ class RecipeNode(
     override fun Content(modifier: Modifier) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             val hazeState = remember { HazeState() }
+            val recipe = remember(recipeID) {
+                realm.query<Recipe>("id == $0", recipeID).first().find()
+            } ?: throw IllegalStateException("Recipe with id $recipeID not found")
 
             KamelImageBox(
                 resource = {
-                    asyncPainterResource(
-                        "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg",
-                        filterQuality = FilterQuality.High
-                    )
+                    asyncPainterResource(recipe.smallImage)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -138,7 +142,7 @@ class RecipeNode(
                 }
 
                 Text(
-                    "Pork and Century Egg Congee",
+                    text = recipe.name,
                     modifier = Modifier
                         .hazeChild(hazeState, style = HazeStyle(blurRadius = 2.dp, noiseFactor = 10f))
                         .clip(Shape.RoundedMedium)
@@ -152,34 +156,38 @@ class RecipeNode(
                 Modifier
                     .padding(Size.Padding)
                     .animateContentSize(),
-            ) { ColumnContent() }
+            ) { ColumnContent(recipe) }
         }
     }
 
     @Composable
-    private fun ColumnScope.ColumnContent() {
+    private fun ColumnScope.ColumnContent(recipe: Recipe) {
         StarRating(3.5f)
 
         IconText(
             Lucide.Clock,
             "Cooking Time",
-            "${recipe.cookingTime} minutes",
-        )
-
-        IconText(
-            Lucide.Carrot,
-            "Tags",
-            recipe.tags.take(3).joinToString(),
+            "${recipe.cookingTime} min",
         )
 
         Section("Ingredients") {
-            IconText(Lucide.Square, "2 Century Eggs", "2 Century Eggs")
-            IconText(Lucide.SquareCheckBig, "10kg Pork Mince", "10kg Pork Mince")
-            IconText(Lucide.SquareDashedBottom, "Salt", "Salt")
+            recipe.ingredients.forEach {
+                IconText(
+                    Lucide.Square,
+                    "${it.name} (${it.amount ?: ""})",
+                    "${it.name} (${it.amount ?: ""})",
+                )
+            }
         }
 
-        Section("Preparation") {
-            IconText(Lucide.Square, "Step 1", "Do some stuff.")
+        Section("Steps") {
+            recipe.steps.forEachIndexed { index, step ->
+                IconText(
+                    Lucide.Diamond,
+                    step.description,
+                    step.description,
+                )
+            }
         }
 
         Section("About This Recipe") {

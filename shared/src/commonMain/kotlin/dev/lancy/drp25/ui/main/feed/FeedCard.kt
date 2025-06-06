@@ -10,29 +10,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.Text
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
-import com.composables.icons.lucide.Carrot
-import com.composables.icons.lucide.ChefHat
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Users
@@ -51,20 +45,27 @@ import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.realm
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
+import org.mongodb.kbson.ObjectId
 
 class FeedCard(
     nodeContext: NodeContext,
     parent: FeedNode,
-    private val recipe: Recipe,
+    private val recipeID: ObjectId,
 ) : LeafNode(nodeContext),
-    NavConsumer<Recipe, FeedNode> by NavConsumerImpl(parent){
+    NavConsumer<FeedNode.FeedTarget, FeedNode> by NavConsumerImpl(parent){
     @Composable
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
         val scope = rememberCoroutineScope()
+
+        val recipe = remember(recipeID) {
+            realm.query(Recipe::class).find().firstOrNull { it.id == recipeID }
+                ?: throw IllegalStateException("Recipe with id $recipeID not found")
+        }
 
         Box(
             modifier = modifier
@@ -76,13 +77,13 @@ class FeedCard(
                     scope.launch {
                         this@FeedCard
                             .navParent.navParent
-                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe)
+                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe(recipe.id))
                     }
                 },
         ) {
             // Background image
             KamelImage(
-                resource = { asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg") },
+                resource = { asyncPainterResource(recipe.cardImage) },
                 contentDescription = recipe.name,
                 modifier = Modifier
                     .fillMaxSize()
@@ -116,14 +117,13 @@ class FeedCard(
                 ) {
                     IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
 
-                    recipe.calories?.let {
-                        IconText(Lucide.Zap, "Calories", "$it cal")
+                    recipe.energy?.let {
+                        IconText(Lucide.Zap, "Calories", "$it kcal")
                     }
 
                     IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
 
-                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
-                    IconText(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
+//                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
                 }
 
                 // Chips
@@ -133,24 +133,24 @@ class FeedCard(
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    recipe.tags.take(3).forEach { tag ->
-                        AssistChip(
-                            onClick = {},
-                            label = {
-                                Text(
-                                    tag.toString(),
-                                    style = Typography.bodySmall
-                                )
-                            },
-                            modifier = Modifier.defaultMinSize(minHeight = 28.dp),
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = Color.LightGray,
-                                labelColor = Color.Black,
-                            ),
-                            shape = Shape.RoundedLarge,
-                            elevation = AssistChipDefaults.assistChipElevation(),
-                        )
-                    }
+//                    recipe.tags.take(3).forEach { tag ->
+//                        AssistChip(
+//                            onClick = {},
+//                            label = {
+//                                Text(
+//                                    tag.toString(),
+//                                    style = Typography.bodySmall
+//                                )
+//                            },
+//                            modifier = Modifier.defaultMinSize(minHeight = 28.dp),
+//                            colors = AssistChipDefaults.assistChipColors(
+//                                containerColor = Color.LightGray,
+//                                labelColor = Color.Black,
+//                            ),
+//                            shape = Shape.RoundedLarge,
+//                            elevation = AssistChipDefaults.assistChipElevation(),
+//                        )
+//                    }
                 }
 
                 // The navigation bar; counteract the padding of the outer box and the column.
