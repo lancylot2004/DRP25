@@ -14,21 +14,32 @@ data class Recipe(
     val cleanupTime: Int?,
     val calories: Int?,
     val macros: Map<String, Double> = mapOf(),
+    val ingredients: List<Ingredient>,
     val keyIngredients: List<String>,
     val sections: List<RecipeSection>,
     val effortLevel: RecipeEffortLevel,
     val tags: List<RecipeTag>,
     val imageURL: String? = null,
-): NavTarget
+    val videoURL: String? = null,
+) : NavTarget
 
-enum class RecipeEffortLevel(val displayName: String) {
-    LOW_EFFORT("Low effort"),
-    QUICK_EFFORT("Quick prep"),
-    MEDIUM_EFFORT("Medium effort"),
-    HIGH_EFFORT("High effort"),
-    FATALITY("Fatality"),
-}
 
+@Serializable
+data class RecipeSection(
+    val title: String,
+    val steps: List<RecipeStep>,
+)
+
+@Serializable
+data class RecipeStep(
+    val description: String,
+    val imageURL: String? = null,
+)
+
+
+
+
+// Example recipe
 val example = Recipe(
     name = "Example Recipe",
     description = "This is an example recipe for demonstration purposes.",
@@ -39,6 +50,7 @@ val example = Recipe(
     calories = 500,
     macros = mapOf("Protein" to 20.0, "Carbs" to 60.0, "Fats" to 10.0),
     keyIngredients = listOf("chicken, potatoes"),
+    ingredients = listOf(),
     sections = listOf(
         RecipeSection(
             title = "Preparation",
@@ -51,9 +63,9 @@ val example = Recipe(
     ),
     effortLevel = RecipeEffortLevel.LOW_EFFORT,
     tags = listOf(
-        RecipeTag.Diet.Vegan,
-        RecipeTag.Cuisine.Italian,
-        RecipeTag.MealType.Dinner
+        Diet.Vegan,
+        Cuisine.Italian,
+        MealType.Dinner
     ),
     imageURL = "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg"
 )
