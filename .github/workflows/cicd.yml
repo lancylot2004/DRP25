@@ -308,8 +308,8 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          name: v${{ needs.bump-version.outputs.new_version }}
-          tag_name: v${{ needs.bump-version.outputs.new_version }}
+          name: v${{ needs.read-version.outputs.version }}
+          tag_name: v${{ needs.read-version.outputs.version }}
           body: ${{ env.RELEASE_NOTES }}
           files: ./release/*
         env:
