@@ -90,6 +90,11 @@ kotlin {
 
             // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
             implementation(libs.kamel.image)
+
+            // Supabase | https://github.com/supabase/supabase-kt | Apache-2.0
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.kt)
+            implementation(libs.storage.kt)
         }
     }
 }
