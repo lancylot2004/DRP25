@@ -32,11 +32,8 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
-import com.bumble.appyx.utils.multiplatform.Parcelize
-import dev.lancy.drp25.data.Ingredient
 import dev.lancy.drp25.data.Recipe
-import dev.lancy.drp25.data.Step
-import dev.lancy.drp25.ui.RootNode.RootTarget
+import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -45,20 +42,13 @@ import dev.lancy.drp25.utilities.Typography
 import kotlinx.coroutines.launch
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
-import dev.lancy.drp25.utilities.realm
-import io.realm.kotlin.Realm
-import io.realm.kotlin.RealmConfiguration
-import org.mongodb.kbson.ObjectId
-import kotlin.jvm.JvmInline
-
-import io.realm.kotlin.ext.query
 
 class FeedNode(
     nodeContext: NodeContext,
     parent: MainNode,
-    private val spotlight: Spotlight<FeedTarget> = Spotlight(
+    private val spotlight: Spotlight<Recipe> = Spotlight(
         model = SpotlightModel(
-            items = realm.query<Recipe>().find().map { FeedTarget(it.id) },
+            items = listOf(example, example, example),
             savedStateMap = mapOf(),
         ),
         visualisation = {
@@ -89,16 +79,13 @@ class FeedNode(
             revertGestureSpec = spring(),
         ),
     ),
-) : Node<FeedTarget>(spotlight, nodeContext),
-    NavProvider<FeedTarget>,
+) : Node<Recipe>(spotlight, nodeContext),
+    NavProvider<Recipe>,
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
-    @JvmInline
-    value class FeedTarget(val id: ObjectId) : NavTarget
-
     override fun buildChildNode(
-        navTarget: FeedTarget,
+        navTarget: Recipe,
         nodeContext: NodeContext,
-    ): Node<*> = FeedCard(nodeContext, this, navTarget.id) // TODO
+    ): Node<*> = FeedCard(nodeContext, this, navTarget)
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
@@ -144,7 +131,7 @@ class FeedNode(
         }
     }
 
-    override suspend fun <C : NavTarget> navigate(target: FeedTarget): Node<C> = attachChild {
+    override suspend fun <C : NavTarget> navigate(target: Recipe): Node<C> = attachChild {
         val ind = spotlight.elements.value.onScreen?.indexOfFirst { it.interactionTarget == target }
         if (ind == null || ind < 0) { TODO() }
         spotlight.activate(ind.toFloat())
