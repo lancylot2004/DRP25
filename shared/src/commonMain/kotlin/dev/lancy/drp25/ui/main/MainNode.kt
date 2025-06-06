@@ -42,11 +42,9 @@ import com.composables.icons.lucide.Telescope
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
-import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.feed.FeedNode
-import dev.lancy.drp25.ui.main.feed.FilterNode
-import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
+import dev.lancy.drp25.ui.main.me.MeNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.NavProvider
@@ -102,7 +100,7 @@ class MainNode(
         data object Me : MainTarget(
             "Me",
             { Lucide.CircleUserRound },
-            { context, parent -> FilterNode(context, parent) },
+            { context, parent -> MeNode(context, parent) },
         )
 
         companion object : StaticNavTarget {

@@ -1,11 +1,12 @@
 package dev.lancy.drp25.ui.main.feed
 
-import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -24,15 +25,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.bumble.appyx.navigation.modality.NodeContext
-import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Search
-import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.utilities.DishCuisine
 import dev.lancy.drp25.utilities.DishDiet
 import dev.lancy.drp25.utilities.DishType
@@ -41,17 +38,15 @@ import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 
-class FilterNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext) {
     private val PLACEHOLDER_SLIDER_RANGE = 0f..100f
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(modifier: Modifier) {
+    fun FilterContent() {
         Column(
-            modifier = Modifier
-            .padding(Size.Padding)
+            modifier = Modifier.background(color = Color.Black)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = Size.BarLarge)
+            .padding(top = Size.Padding, bottom = Size.BarLarge, start = Size.Padding, end = Size.Padding)
         ) {
             Text(
                 "Filters",
@@ -221,7 +216,10 @@ class FilterNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
                 }
             }
 
-            Row {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text("Only use my equipment")
                 var equipmentChecked by remember { mutableStateOf(true) }
                 Switch(
@@ -267,4 +265,3 @@ class FilterNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
         }
 
     }
-}
