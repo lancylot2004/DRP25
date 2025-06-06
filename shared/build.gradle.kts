@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.realm)
 }
 
 detekt {
@@ -61,6 +62,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.material3)
             implementation(libs.kotlinx.serialization)
+            implementation(libs.kotlinx.coroutines)
 
             // Model-Driven Navigation | https://github.com/bumble-tech/appyx | Apache-2.0
             implementation(libs.appyx.interactions)
@@ -90,6 +92,9 @@ kotlin {
 
             // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
             implementation(libs.kamel.image)
+
+            // Realm Database | https://github.com/realm/realm-kotlin | Apache-2.0
+            implementation(libs.realm.base)
         }
     }
 }
@@ -138,8 +143,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 

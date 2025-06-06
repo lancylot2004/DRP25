@@ -15,23 +15,24 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
-import dev.lancy.drp25.data.example
-import dev.lancy.drp25.ui.RootNode.RootTarget.LoggedOut
-import dev.lancy.drp25.ui.RootNode.RootTarget.Main
-import dev.lancy.drp25.ui.RootNode.RootTarget.Recipe
+import com.bumble.appyx.utils.multiplatform.RawValue
+import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.loggedOut.LoggedOutNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.currentTarget
+import dev.lancy.drp25.utilities.initializeRealmWithRecipes
+import kotlinx.coroutines.launch
+import org.mongodb.kbson.ObjectId
 
 class RootNode(
     nodeContext: NodeContext,
     private val backStack: BackStack<RootTarget> = BackStack(
         model = BackStackModel(
             // TODO: Update after authentication is finalised.
-            initialTargets = listOf(Main),
+            initialTargets = listOf(RootTarget.Main),
             savedStateMap = nodeContext.savedStateMap,
         ),
         visualisation = { BackStackFader(it) },
@@ -55,16 +56,16 @@ class RootNode(
         /**
          * [Recipe] is an overlay that appears above the [Main] page.
          */
-        data object Recipe : RootTarget()
+        data class Recipe(val id: @RawValue ObjectId) : RootTarget()
     }
 
     override fun buildChildNode(
         navTarget: RootTarget,
         nodeContext: NodeContext,
     ): Node<*> = when (navTarget) {
-        Main -> MainNode(nodeContext, this)
-        LoggedOut -> LoggedOutNode(nodeContext)
-        Recipe -> RecipeNode(nodeContext, example, this) { backStack.pop() }
+        RootTarget.Main -> MainNode(nodeContext, this)
+        RootTarget.LoggedOut -> LoggedOutNode(nodeContext)
+        is RootTarget.Recipe -> RecipeNode(nodeContext, navTarget.id, this) { backStack.pop() }
     }
 
     @Composable
@@ -73,17 +74,19 @@ class RootNode(
             appyxComponent = backStack,
             modifier = modifier,
         )
+
+        this.lifecycleScope.launch { initializeRealmWithRecipes() }
     }
 
     override suspend fun <C : NavTarget> navigate(target: RootTarget): Node<C> =
         attachChild<Node<C>> {
             when (backStack.currentTarget()) {
                 // Destroy [LoggedOut] and [Overlay] since it never needs to be preserved.
-                LoggedOut, Recipe -> backStack.replace(target)
-                Main ->
+                RootTarget.LoggedOut, is RootTarget.Recipe -> backStack.replace(target)
+                RootTarget.Main ->
                     when (target) {
                         // Destroy [Main] if the user logs out.
-                        LoggedOut -> backStack.replace(target)
+                        RootTarget.LoggedOut -> backStack.replace(target)
                         // Otherwise push overlay above [Main].
                         else -> backStack.push(target)
                     }
