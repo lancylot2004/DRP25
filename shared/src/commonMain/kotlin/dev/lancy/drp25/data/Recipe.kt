@@ -1,43 +1,84 @@
 package dev.lancy.drp25.data
 
-import dev.lancy.drp25.ui.shared.NavTarget
+import androidx.compose.runtime.mutableStateOf
+import io.realm.kotlin.ext.realmListOf
+import io.realm.kotlin.types.EmbeddedRealmObject
+import io.realm.kotlin.types.RealmList
 import io.realm.kotlin.types.RealmObject
-import kotlinx.serialization.Serializable
+import io.realm.kotlin.types.annotations.PrimaryKey
+import org.mongodb.kbson.ObjectId
 
-@Serializable
-data class Recipe(
+class Recipe(
+    @PrimaryKey
+    var id: ObjectId = ObjectId(),
     /**
      * The name of the recipe.
      */
-    val name: String,
+    var name: String = "",
     /**
      * Time taken to cook the recipe, in minutes.
      */
-    val cookingTime: Int,
+    var cookingTime: Int = 0,
     /**
      * Time taken to clean up after cooking the recipe, in minutes.
      */
-    val cleanupTime: Int? = null,
+    var cleanupTime: Int? = null,
     /**
      * The number of portions the recipe serves.
      */
-    val portions: Int,
+    var portions: Int = 1,
     /**
      * User-rating of the recipe, from 0.0 to 5.0.
      */
-    val rating: Float,
+    var rating: Float = 0f,
+    /**
+     * The diet of the recipe. None if not applicable.
+     */
+    var diet: String? = null,
+    /**
+     * The cuisine of the recipe. None if not applicable.
+     */
+    var cuisine: String? = null,
+    /**
+     * How much energy the recipe provides, in kcal.
+     */
+    var energy: Int? = null,
     /**
      * The vertical format image for this recipe.
      *
      * TODO: Specify format.
      */
-    val cardImage: String,
+    var cardImage: String = "",
     /**
      * The horizontal format image for this recipe.
      */
-    val smallImage: String,
+    var smallImage: String = "",
     /**
      * The video tutorial for this recipe.
      */
-    val video: String? = null,
-): NavTarget, RealmObject
+    var video: String? = null,
+    /**
+     * The ingredients required to cook this recipe.
+     */
+    var ingredients: RealmList<Ingredient> = realmListOf(),
+    /**
+     * The steps to cook this recipe.
+     */
+    var steps: RealmList<Step> = realmListOf(),
+): RealmObject {
+    constructor() : this(ObjectId())
+}
+
+class Ingredient(
+    var name: String = "",
+    var amount: String? = null,
+) : EmbeddedRealmObject {
+    constructor() : this("")
+}
+
+class Step(
+    var description: String = "",
+    var videoTimestamp: Int? = null,
+) : EmbeddedRealmObject {
+    constructor() : this("")
+}

@@ -95,7 +95,6 @@ kotlin {
 
             // Realm Database | https://github.com/realm/realm-kotlin | Apache-2.0
             implementation(libs.realm.base)
-            implementation(libs.realm.sync)
         }
     }
 }
@@ -144,8 +143,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
