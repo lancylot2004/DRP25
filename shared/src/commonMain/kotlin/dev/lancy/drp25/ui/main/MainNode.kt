@@ -1,7 +1,6 @@
 package dev.lancy.drp25.ui.main
 
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -17,27 +16,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.Text
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.boundsInRoot
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.max
-import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
 import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.SpotlightModel
@@ -54,22 +42,22 @@ import com.composables.icons.lucide.Telescope
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.lancy.drp25.data.example
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.feed.FeedNode
 import dev.lancy.drp25.ui.main.me.MeNode
+import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.ui.shared.StaticNavTarget
-import dev.lancy.drp25.utilities.Animation
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Const
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.textWidth
-import kotlin.math.roundToInt
+import dev.lancy.drp25.utilities.selectedIndex
 
 class MainNode(
     nodeContext: NodeContext,
@@ -118,7 +106,7 @@ class MainNode(
         )
 
         companion object : StaticNavTarget {
-            override val default: MainTarget = Feed
+            override val default: MainTarget = Me
 
             override val entries: List<MainTarget> = listOf(Feed, Me)
         }
@@ -136,73 +124,31 @@ class MainNode(
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
-        val selectedIndex =
-            spotlight.activeIndex
-                .collectAsState()
-                .value
-                .toInt()
         val hazeState = remember { HazeState() }
-
-        val overlayWidth =
-            2 * Size.Padding +
-                max(
-                    textWidth(
-                        MainTarget.entries[selectedIndex].title,
-                        Typography.labelSmall,
-                    ),
-                    Size.IconSmall,
-                )
-
-        var overlayOffsetX by remember { mutableStateOf(0f) }
-        val overlayAnimatedX by animateFloatAsState(
-            overlayOffsetX,
-            label = "overlayOffsetX",
-            animationSpec = Animation.EnterLong,
-        )
 
         Box(modifier = Modifier.fillMaxSize()) {
             Row(
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .zIndex(1f)
-                        .fillMaxWidth()
-                        .height(Size.BarLarge)
-                        .background(Color.Transparent)
-                        // Sneaky fix for glitter at bottom of screen.
-                        .offset(y = 2.dp)
-                        .hazeChild(hazeState),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .zIndex(1f)
+                    .fillMaxWidth()
+                    .height(Size.BarLarge)
+                    .background(Color.Transparent)
+                    // Sneaky fix for glitter at bottom of screen.
+                    .offset(y = 2.dp)
+                    .hazeChild(hazeState),
             ) {
                 MainTarget.entries.forEach {
                     val index = MainTarget.entries.indexOf(it)
                     NavigationItem(
                         title = it.title,
-                        selected = selectedIndex == index,
+                        selected = spotlight.selectedIndex() == index,
                         icon = it.icon,
-                        modifier =
-                            Modifier.onGloballyPositioned { coordinates ->
-                                if (selectedIndex == index) {
-                                    // Rely on navigation bar occupying width of screen.
-                                    overlayOffsetX = coordinates.boundsInRoot().left
-                                }
-                            },
                     ) { spotlight.activate(index.toFloat()) }
                 }
             }
-
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .offset { IntOffset(overlayAnimatedX.roundToInt(), (-Size.Padding).roundToPx()) }
-                        .width(overlayWidth)
-                        .height(Size.BarLarge - 2 * Size.Padding)
-                        .clip(Shape.RoundedMedium)
-                        .background(ColourScheme.onBackground)
-                        .alpha(0.5f),
-            )
 
             AppyxNavigationContainer(
                 modifier = Modifier.haze(hazeState, Const.HazeStyle),
@@ -216,39 +162,31 @@ class MainNode(
         title: String,
         selected: Boolean,
         icon: @Composable () -> ImageVector,
-        modifier: Modifier,
         onClick: () -> Unit,
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier =
-                modifier
-                    .clip(Shape.RoundedSmall)
-                    .clickable { onClick() },
+            modifier = Modifier
+                .clip(Shape.RoundedSmall)
+                .clickable { onClick() },
         ) {
             Icon(
                 imageVector = icon(),
                 contentDescription = title,
-                modifier =
-                    Modifier
-                        .padding(
-                            top = Size.Padding,
-                            start = Size.Padding,
-                            end = Size.Padding,
-                        ).size(Size.IconSmall),
+                modifier = Modifier
+                    .padding(start = Size.Padding, end = Size.Padding, top = Size.Padding)
+                    .size(Size.IconSmall),
+                tint = if (!selected) ColourScheme.onBackground else ColourScheme.primary,
             )
 
             Spacer(Modifier.height(Size.Padding))
 
             Text(
                 title,
+                color = if (!selected) ColourScheme.onBackground else ColourScheme.primary,
                 style = Typography.labelSmall,
-                modifier =
-                    Modifier.padding(
-                        bottom = Size.Padding,
-                        start = Size.Padding,
-                        end = Size.Padding,
-                    ),
+                modifier = Modifier
+                    .padding(start = Size.Padding, end = Size.Padding, bottom = Size.Padding),
             )
         }
     }

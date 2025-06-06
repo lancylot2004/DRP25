@@ -2,173 +2,160 @@ package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.Chip
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.Text
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Carrot
+import com.composables.icons.lucide.ChefHat
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Star
+import com.composables.icons.lucide.Users
+import com.composables.icons.lucide.Zap
+import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.RootNode
+import dev.lancy.drp25.ui.shared.NavConsumer
+import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.ui.shared.components.IconText
+import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
-import kotlin.math.round
+import kotlinx.coroutines.launch
 
 class FeedCard(
     nodeContext: NodeContext,
+    parent: FeedNode,
     private val recipe: Recipe,
-) : LeafNode(nodeContext) {
-    @OptIn(ExperimentalMaterialApi::class)
+) : LeafNode(nodeContext),
+    NavConsumer<Recipe, FeedNode> by NavConsumerImpl(parent){
     @Composable
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
+        val scope = rememberCoroutineScope()
+
         Box(
-            modifier =
-                modifier
-                    .fillMaxSize()
-                    .padding(Size.BigPadding)
-                    .clip(Shape.RoundedLarge)
-                    .border(2.dp, ColourScheme.onBackground, Shape.RoundedLarge),
+            modifier = modifier
+                .fillMaxSize()
+                .padding(Size.BigPadding)
+                .border(1.dp, ColourScheme.secondary, Shape.RoundedLarge)
+                .clip(Shape.RoundedLarge)
+                .clickable(role = Role.Button) {
+                    scope.launch {
+                        this@FeedCard
+                            .navParent.navParent
+                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe)
+                    }
+                },
         ) {
+            // Background image
             KamelImage(
-                resource =
-                    asyncPainterResource(
-                        recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg",
-                    ),
+                resource = { asyncPainterResource(recipe.imageURL ?: "https://i.ytimg.com/vi/LOXyOlLUX_A/hqdefault.jpg") },
                 contentDescription = recipe.name,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .haze(state = hazeState),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .haze(state = hazeState),
                 contentScale = ContentScale.Crop,
-                animationSpec =
-                    spring(
-                        stiffness = Spring.StiffnessMediumLow,
-                        visibilityThreshold = 0.01f,
-                    ),
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             )
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .align(Alignment.BottomStart)
-                        .background(
-                            Brush.verticalGradient(
-                                colorStops =
-                                    arrayOf(
-                                        0.6f to Color.Transparent,
-                                        0.85f to Color.Black,
-                                    ),
-                            ),
-                        ),
-            )
+
+            // Content
             Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(1f / 3.2f)
-                        .align(Alignment.BottomStart)
-                        .padding(Size.Padding),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomStart)
+                    .hazeChild(hazeState, style = HazeDefaults.style(tint = ColourScheme.background.copy(alpha = 0.3f)))
+                    .padding(Size.Padding),
                 horizontalAlignment = Alignment.Start,
             ) {
-                Text(recipe.name, style = Typography.titleMedium, color = ColourScheme.onBackground)
+                Text(
+                    recipe.name,
+                    style = Typography.titleMedium,
+                    color = ColourScheme.onBackground
+                )
 
-                val keyInfo: @Composable (ImageVector, String, String) -> Unit =
-                    { icon, desc, text ->
-                        Row {
-                            Icon(
-                                icon,
-                                contentDescription = desc,
-                                modifier = Modifier.padding(Size.CornerSmall),
-                                tint = ColourScheme.onBackground,
-                            )
-                            Text(
-                                text,
-                                modifier = Modifier.align(Alignment.CenterVertically),
-                                style = Typography.bodyMedium,
-                                color = ColourScheme.onBackground,
-                            )
-                        }
+                StarRating(recipe.rating.toFloat())
+
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(0.dp),
+                    horizontalArrangement = Arrangement.spacedBy(Size.Padding),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
+
+                    recipe.calories?.let {
+                        IconText(Lucide.Zap, "Calories", "$it cal")
                     }
 
-                keyInfo(
-                    Lucide.Clock,
-                    "Cooking Time",
-                    "${recipe.cookingTime} minutes",
-                )
+                    IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
 
-                keyInfo(
-                    Lucide.Carrot,
-                    "Tags",
-                    recipe.tags.take(3).joinToString(),
-                )
+                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
+                    IconText(Lucide.ChefHat, "Effort", recipe.effortLevel.displayName)
+                }
 
-                keyInfo(
-                    Lucide.Star,
-                    "Rating",
-                    "${recipe.rating.round(1)} / 5",
-                )
-
-                LazyRow(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight()
-                            .clip(Shape.RoundedLarge)
-                            .background(Color.Gray)
-                            .hazeChild(hazeState),
+                // Chips
+                FlowRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(recipe.tags.take(3)) {
-                        Chip(
+                    recipe.tags.take(3).forEach { tag ->
+                        AssistChip(
                             onClick = {},
-                            modifier = Modifier.padding(Size.Padding),
-                        ) {
-                            Text(
-                                it.toString(),
-                                style = Typography.bodyMedium,
-                                color = Color.Black,
-                            )
-                        }
+                            label = {
+                                Text(
+                                    tag.toString(),
+                                    style = Typography.bodySmall
+                                )
+                            },
+                            modifier = Modifier.defaultMinSize(minHeight = 28.dp),
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color.LightGray,
+                                labelColor = Color.Black,
+                            ),
+                            shape = Shape.RoundedLarge,
+                            elevation = AssistChipDefaults.assistChipElevation(),
+                        )
                     }
                 }
+
+                // The navigation bar; counteract the padding of the outer box and the column.
+                Spacer(Modifier.height(Size.BarLarge - Size.BigPadding - Size.Padding))
             }
         }
     }
-}
-
-fun Double.round(decimals: Int): Double {
-    var multiplier = 1.0
-    repeat(decimals) { multiplier *= 10 }
-    return round(this * multiplier) / multiplier
 }

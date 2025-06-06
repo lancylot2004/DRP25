@@ -1,21 +1,16 @@
 package dev.lancy.drp25.utilities
 
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.chrisbanes.haze.HazeStyle
 
 object Size {
-    /** *Final* Typical margin value, typically used to slightly expand containers. */
-    val Margin = 4.dp
-
     /** *Final* Typical padding value. */
     val Padding = 8.dp
 
@@ -23,10 +18,7 @@ object Size {
     val BigPadding = 16.dp
 
     /** *Final* Typical spacing value. */
-    val Spacing = 8.dp
-
-    /** *Final* Big spacing value. Usually used in prominent lists. */
-    val BigSpacing = 24.dp
+    val Spacing = 4.dp
 
     /** Thickness of larger bars, such as the bottom navigation bar. */
     val BarLarge = 70.dp
@@ -77,32 +69,14 @@ object Shape {
 }
 
 object Animation {
-    /** Delay duration before animations, long. */
-    const val DelayShort = 100
-
-    const val DelayMedium = 300
-
     fun <T> short(): AnimationSpec<T> = tween(50, 100)
 
-    /** Animation to reach a end state, long. */
-    val EnterLong: AnimationSpec<Float> =
-        tween(
-            durationMillis = 600,
-            delayMillis = DelayShort,
-            easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
-        )
-
-    /** Animation to revert from an end state, long. */
-    val ExitLong: AnimationSpec<Float> =
-        tween(
-            durationMillis = 350,
-            delayMillis = DelayShort,
-            easing = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1.0f),
-        )
+    fun <T> medium(): AnimationSpec<T> = tween(300, 100)
 }
 
 object Const {
-    val HazeStyle = HazeStyle(Color.Black.copy(alpha = 0.5f), 25.dp, 0.3f)
+    val HazeStyle
+        @Composable get() = HazeStyle(ColourScheme.background.copy(alpha = 0.5f), 5.dp, 0.2f)
 }
 
 val Typography: Typography
