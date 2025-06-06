@@ -59,6 +59,7 @@ import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Diamond
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Square
 import com.composables.icons.lucide.SquareCheckBig
@@ -182,7 +183,7 @@ class RecipeNode(
         Section("Steps") {
             recipe.steps.forEachIndexed { index, step ->
                 IconText(
-                    Lucide.SquareCheckBig,
+                    Lucide.Diamond,
                     step.description,
                     step.description,
                 )
