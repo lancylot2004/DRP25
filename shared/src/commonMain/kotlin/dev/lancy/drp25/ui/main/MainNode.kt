@@ -37,6 +37,7 @@ import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import com.composables.icons.lucide.CircleUserRound
+import com.composables.icons.lucide.Cookie
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Telescope
 import dev.chrisbanes.haze.HazeState
@@ -45,6 +46,7 @@ import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.feed.FeedNode
 import dev.lancy.drp25.ui.main.me.MeNode
+import dev.lancy.drp25.ui.main.pantry.PantryNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.NavProvider
@@ -95,6 +97,15 @@ class MainNode(
         )
 
         /**
+         * [Pantry] contains the ingredients and utensils in the kitchen.
+         */
+        data object Pantry : MainTarget(
+            "Pantry",
+            { Lucide.Cookie },
+            { context, parent -> PantryNode(context, parent) },
+        )
+
+        /**
          * [Me] contains the user's information and settings.
          */
         data object Me : MainTarget(
@@ -106,7 +117,7 @@ class MainNode(
         companion object : StaticNavTarget {
             override val default: MainTarget = Me
 
-            override val entries: List<MainTarget> = listOf(Feed, Me)
+            override val entries: List<MainTarget> = listOf(Feed, Pantry, Me)
         }
     }
 

@@ -95,6 +95,11 @@ kotlin {
 
             // Realm Database | https://github.com/realm/realm-kotlin | Apache-2.0
             implementation(libs.realm.base)
+
+            // Supabase | https://github.com/supabase/supabase-kt | Apache-2.0
+            implementation(libs.supabase.postgrest)
+            implementation(libs.supabase.kt)
+            implementation(libs.storage.kt)
         }
     }
 }

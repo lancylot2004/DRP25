@@ -1,31 +1,20 @@
 package dev.lancy.drp25.ui.main.feed
 
-import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.SpotlightModel
 import com.bumble.appyx.components.spotlight.operation.activate
+import com.bumble.appyx.components.spotlight.operation.updateElements
 import com.bumble.appyx.components.spotlight.ui.slider.SpotlightSlider
 import com.bumble.appyx.interactions.gesture.GestureSettleConfig
 import com.bumble.appyx.navigation.composable.AppyxNavigationContainer
@@ -33,13 +22,10 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
-import com.bumble.appyx.utils.multiplatform.Parcelize
-import dev.lancy.drp25.data.Ingredient
 import dev.lancy.drp25.data.Recipe
-import dev.lancy.drp25.data.Step
-import dev.lancy.drp25.ui.RootNode.RootTarget
-import dev.lancy.drp25.ui.main.MainNode
+import dev.lancy.drp25.utilities.allRecipes
 import dev.lancy.drp25.ui.main.feed.FeedNode.FeedTarget
+import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.utilities.Size
@@ -48,21 +34,17 @@ import kotlinx.coroutines.launch
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.Shape
-import dev.lancy.drp25.utilities.realm
-import io.realm.kotlin.Realm
-import io.realm.kotlin.RealmConfiguration
-import org.mongodb.kbson.ObjectId
+import dev.lancy.drp25.utilities.fetchAllRecipes
 import kotlin.jvm.JvmInline
-
-import io.realm.kotlin.ext.query
 
 class FeedNode(
     nodeContext: NodeContext,
     parent: MainNode,
     private val spotlight: Spotlight<FeedTarget> = Spotlight(
         model = SpotlightModel(
-            items = realm.query<Recipe>().find().map { FeedTarget(it.id) },
-            savedStateMap = mapOf(),
+            items = if (allRecipes.value.isNotEmpty()) allRecipes.value.map { FeedTarget(it.id) } else listOf(),
+            initialActiveIndex = 0f,
+            savedStateMap = nodeContext.savedStateMap,
         ),
         visualisation = {
             SpotlightSlider(
@@ -91,12 +73,12 @@ class FeedNode(
             completeGestureSpec = spring(),
             revertGestureSpec = spring(),
         ),
-    ),
+    )
 ) : Node<FeedTarget>(spotlight, nodeContext),
     NavProvider<FeedTarget>,
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
     @JvmInline
-    value class FeedTarget(val id: ObjectId) : NavTarget
+    value class FeedTarget(val id: String) : NavTarget
 
     override fun buildChildNode(
         navTarget: FeedTarget,
@@ -109,27 +91,30 @@ class FeedNode(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val scope = rememberCoroutineScope()
 
+        // Ensure recipes are loaded and spotlight is updated
+        LaunchedEffect(allRecipes.value.size) {
+            if (allRecipes.value.isNotEmpty()) {
+                try {
+                    val feedTargets = allRecipes.value.map { FeedTarget(it.id) }
+                    spotlight.updateElements(feedTargets)
+                } catch (e: Exception) {
+                    println("Error updating spotlight: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
+        }
+
         Column {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
-                    .padding(
-                        start = Size.BigPadding,
-                        end = Size.BigPadding,
-                        top = Size.Padding
-                    )
+                    .padding(start = Size.BigPadding, end = Size.BigPadding, top = Size.Padding)
                     .fillMaxWidth()
             ) {
-                Text(
-                    "Feed",
-                    color = Color.White,
-                    style = Typography.titleMedium,
-                )
+                Text("Feed", color = Color.White, style = Typography.titleMedium)
 
-                IconButton(
-                    onClick = { scope.launch { sheetState.expand() } },
-                ) {
+                IconButton(onClick = { scope.launch { sheetState.expand() } }) {
                     Icon(
                         imageVector = Lucide.Settings,
                         contentDescription = null,

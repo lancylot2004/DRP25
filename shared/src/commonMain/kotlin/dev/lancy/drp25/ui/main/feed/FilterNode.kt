@@ -30,10 +30,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Search
-import dev.lancy.drp25.utilities.DishCuisine
-import dev.lancy.drp25.utilities.DishDiet
-import dev.lancy.drp25.utilities.DishType
-import dev.lancy.drp25.utilities.Ingredients
+import dev.lancy.drp25.data.Cuisine
+import dev.lancy.drp25.data.Diet
+import dev.lancy.drp25.data.Ingredients
+import dev.lancy.drp25.data.MealType
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
@@ -74,7 +74,7 @@ fun FilterContent() {
 
         Text("Type of meal")
         FlowRow {
-            DishType.entries.forEach { dish ->
+            MealType.entries.forEach { dish ->
                 AssistChip(
                     onClick = {},
                     label = {
@@ -96,7 +96,7 @@ fun FilterContent() {
 
         Text("Cuisine")
         FlowRow {
-            DishCuisine.entries.forEach { cuisine ->
+            Cuisine.entries.forEach { cuisine ->
                 AssistChip(
                     onClick = {},
                     label = {
@@ -118,7 +118,7 @@ fun FilterContent() {
 
         Text("Dietary needs")
         FlowRow {
-            DishDiet.entries.forEach { diet ->
+            Diet.entries.forEach { diet ->
                 AssistChip(
                     onClick = {},
                     label = {

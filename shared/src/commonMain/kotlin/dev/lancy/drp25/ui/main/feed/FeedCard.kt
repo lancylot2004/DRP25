@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
+import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Users
@@ -41,31 +42,30 @@ import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
+import dev.lancy.drp25.ui.main.feed.FeedNode.FeedTarget
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.realm
+import dev.lancy.drp25.utilities.allRecipes
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
-import org.mongodb.kbson.ObjectId
 
 class FeedCard(
     nodeContext: NodeContext,
     parent: FeedNode,
-    private val recipeID: ObjectId,
+    private val recipeID: String,
 ) : LeafNode(nodeContext),
-    NavConsumer<FeedNode.FeedTarget, FeedNode> by NavConsumerImpl(parent){
+    NavConsumer<FeedTarget, FeedNode> by NavConsumerImpl(parent){
     @Composable
     override fun Content(modifier: Modifier) {
         val hazeState = remember { HazeState() }
         val scope = rememberCoroutineScope()
 
         val recipe = remember(recipeID) {
-            realm.query(Recipe::class).find().firstOrNull { it.id == recipeID }
-                ?: throw IllegalStateException("Recipe with id $recipeID not found")
-        }
+            allRecipes.value.find { it.id == recipeID }
+        } ?: throw IllegalStateException("Recipe with id $recipeID not found")
 
         Box(
             modifier = modifier
@@ -79,7 +79,7 @@ class FeedCard(
                             .navParent.navParent
                             .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe(recipe.id))
                     }
-                },
+                }
         ) {
             // Background image
             KamelImage(
@@ -102,12 +102,12 @@ class FeedCard(
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    recipe.name,
+                    text = recipe.name,
                     style = Typography.titleMedium,
                     color = ColourScheme.onBackground
                 )
 
-                StarRating(recipe.rating.toFloat())
+                StarRating(recipe.rating)
 
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -117,13 +117,13 @@ class FeedCard(
                 ) {
                     IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
 
-                    recipe.energy?.let {
+                    recipe.calories?.let {
                         IconText(Lucide.Zap, "Calories", "$it kcal")
                     }
 
                     IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
 
-//                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
+                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
                 }
 
                 // Chips

@@ -7,10 +7,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,13 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
@@ -62,13 +50,12 @@ import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Diamond
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Square
-import com.composables.icons.lucide.SquareCheckBig
-import com.composables.icons.lucide.SquareDashedBottom
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.formatIngredientDisplay
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -79,32 +66,31 @@ import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.realm
+import dev.lancy.drp25.utilities.allRecipes
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
-import org.mongodb.kbson.ObjectId
-import io.realm.kotlin.ext.query
 
 class RecipeNode(
     nodeContext: NodeContext,
-    private val recipeID: ObjectId,
+    private val recipeID: String,
     parent: RootNode,
     private val back: () -> Unit,
 ) : LeafNode(nodeContext),
     NavConsumer<RootNode.RootTarget, RootNode> by NavConsumerImpl(parent) {
+
     @OptIn(ExperimentalKamelApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             val hazeState = remember { HazeState() }
             val recipe = remember(recipeID) {
-                realm.query<Recipe>("id == $0", recipeID).first().find()
+                allRecipes.value.find { it.id == recipeID }
             } ?: throw IllegalStateException("Recipe with id $recipeID not found")
 
             KamelImageBox(
                 resource = {
-                    asyncPainterResource(recipe.smallImage)
+                    asyncPainterResource(recipe.smallImage, filterQuality = FilterQuality.High)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -170,12 +156,20 @@ class RecipeNode(
             "${recipe.cookingTime} min",
         )
 
+        IconText(
+            Lucide.Carrot,
+            "Tags",
+            listOf(recipe.mealType, recipe.diet, recipe.cuisine).joinToString()
+        )
+
+
         Section("Ingredients") {
-            recipe.ingredients.forEach {
+            recipe.ingredients.forEach { ingredient ->
+                val formatted = formatIngredientDisplay(ingredient)
                 IconText(
                     Lucide.Square,
-                    "${it.name} (${it.amount ?: ""})",
-                    "${it.name} (${it.amount ?: ""})",
+                    formatted,
+                    formatted
                 )
             }
         }
@@ -192,7 +186,7 @@ class RecipeNode(
 
         Section("About This Recipe") {
             Text(
-                "The chef is from this tiny little village in France, and has refined his culinary skills by eating grapes in the vineyard every single morning. This dish is inspired by Martians who invited the young chef to Mars for a taster session in potato growing, and his memories thereof.",
+                text = recipe.description,
                 style = Typography.bodyMedium,
                 color = ColourScheme.onBackground,
             )
@@ -200,7 +194,7 @@ class RecipeNode(
     }
 
     @Composable
-    private fun ColumnScope.Section(
+    fun ColumnScope.Section(
         title: String,
         content: @Composable ColumnScope.() -> Unit,
     ) {

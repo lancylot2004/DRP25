@@ -23,9 +23,8 @@ import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.currentTarget
-import dev.lancy.drp25.utilities.initializeRealmWithRecipes
+import dev.lancy.drp25.utilities.fetchAllRecipes
 import kotlinx.coroutines.launch
-import org.mongodb.kbson.ObjectId
 
 class RootNode(
     nodeContext: NodeContext,
@@ -56,7 +55,7 @@ class RootNode(
         /**
          * [Recipe] is an overlay that appears above the [Main] page.
          */
-        data class Recipe(val id: @RawValue ObjectId) : RootTarget()
+        data class Recipe(val id: @RawValue String) : RootTarget()
     }
 
     override fun buildChildNode(
@@ -75,7 +74,7 @@ class RootNode(
             modifier = modifier,
         )
 
-        this.lifecycleScope.launch { initializeRealmWithRecipes() }
+        this.lifecycleScope.launch { fetchAllRecipes() }
     }
 
     override suspend fun <C : NavTarget> navigate(target: RootTarget): Node<C> =
