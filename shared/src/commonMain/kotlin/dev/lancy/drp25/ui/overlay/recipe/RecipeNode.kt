@@ -7,10 +7,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,13 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,13 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
@@ -59,15 +47,13 @@ import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.ChevronLeft
 import com.composables.icons.lucide.ChevronUp
 import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Diamond
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Square
-import com.composables.icons.lucide.SquareCheckBig
-import com.composables.icons.lucide.SquareDashedBottom
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
-import dev.lancy.drp25.data.GlobalRecipeState
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.data.formatIngredientDisplay
 import dev.lancy.drp25.ui.RootNode
@@ -80,36 +66,31 @@ import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.allRecipes
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
 
 class RecipeNode(
     nodeContext: NodeContext,
-    private var recipe: Recipe,
+    private val recipeID: String,
     parent: RootNode,
     private val back: () -> Unit,
 ) : LeafNode(nodeContext),
     NavConsumer<RootNode.RootTarget, RootNode> by NavConsumerImpl(parent) {
+
     @OptIn(ExperimentalKamelApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             val hazeState = remember { HazeState() }
-            recipe = GlobalRecipeState.selectedRecipe!!
+            val recipe = remember(recipeID) {
+                allRecipes.value.find { it.id == recipeID }
+            } ?: throw IllegalStateException("Recipe with id $recipeID not found")
 
             KamelImageBox(
                 resource = {
-                    recipe.imageURL?.let {
-                        asyncPainterResource(
-                            it,
-                            filterQuality = FilterQuality.High
-                        )
-                    }!!
-//                    asyncPainterResource(
-//                        "https://www.halfbakedharvest.com/wp-content/uploads/2019/07/Bucatini-Amatriciana-1-700x1050.jpg",
-//                        filterQuality = FilterQuality.High
-//                    )
+                    asyncPainterResource(recipe.smallImage, filterQuality = FilterQuality.High)
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +128,7 @@ class RecipeNode(
                 }
 
                 Text(
-                    recipe.name,
+                    text = recipe.name,
                     modifier = Modifier
                         .hazeChild(hazeState, style = HazeStyle(blurRadius = 2.dp, noiseFactor = 10f))
                         .clip(Shape.RoundedMedium)
@@ -161,62 +142,51 @@ class RecipeNode(
                 Modifier
                     .padding(Size.Padding)
                     .animateContentSize(),
-            ) { ColumnContent() }
+            ) { ColumnContent(recipe) }
         }
     }
 
     @Composable
-    private fun ColumnScope.ColumnContent() {
+    private fun ColumnScope.ColumnContent(recipe: Recipe) {
         StarRating(3.5f)
 
         IconText(
             Lucide.Clock,
             "Cooking Time",
-            "${recipe.cookingTime} minutes",
+            "${recipe.cookingTime} min",
         )
 
         IconText(
             Lucide.Carrot,
             "Tags",
-            recipe.tags.take(3).joinToString(),
+            listOf(recipe.mealType, recipe.diet, recipe.cuisine).joinToString()
         )
 
+
         Section("Ingredients") {
-            Section("Ingredients") {
-                recipe.ingredients.forEach { ingredient ->
-                    val formatted = formatIngredientDisplay(ingredient)
-                    IconText(Lucide.Square, formatted, formatted)
-                }
-            }
-
-        }
-
-//        Section("Ingredients") {
-//            IconText(Lucide.Square, "2 Century Eggs", "2 Century Eggs")
-//            IconText(Lucide.SquareCheckBig, "10kg Pork Mince", "10kg Pork Mince")
-//            IconText(Lucide.SquareDashedBottom, "Salt", "Salt")
-//        }
-
-        Section("Preparation") {
-            recipe.sections.forEach { section ->
-                Section(section.title) {
-                    section.steps.forEachIndexed { index, step ->
-                        val stepTitle = "Step ${index + 1}"
-                        val stepDescription = step.description
-                        IconText(Lucide.Square, stepTitle, stepDescription)
-                    }
-                }
+            recipe.ingredients.forEach { ingredient ->
+                val formatted = formatIngredientDisplay(ingredient)
+                IconText(
+                    Lucide.Square,
+                    formatted,
+                    formatted
+                )
             }
         }
 
-//        Section("Preparation") {
-//            IconText(Lucide.Square, "Step 1", "Do some stuff.")
-//        }
+        Section("Steps") {
+            recipe.steps.forEachIndexed { index, step ->
+                IconText(
+                    Lucide.Diamond,
+                    step.description,
+                    step.description,
+                )
+            }
+        }
 
         Section("About This Recipe") {
             Text(
-                recipe.description,
-                //"The chef is from this tiny little village in France, and has refined his culinary skills by eating grapes in the vineyard every single morning. This dish is inspired by Martians who invited the young chef to Mars for a taster session in potato growing, and his memories thereof.",
+                text = recipe.description,
                 style = Typography.bodyMedium,
                 color = ColourScheme.onBackground,
             )
@@ -224,7 +194,7 @@ class RecipeNode(
     }
 
     @Composable
-    private fun ColumnScope.Section(
+    fun ColumnScope.Section(
         title: String,
         content: @Composable ColumnScope.() -> Unit,
     ) {

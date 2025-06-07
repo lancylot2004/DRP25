@@ -1,8 +1,47 @@
 package dev.lancy.drp25.data
 
 import kotlinx.serialization.*
-import kotlinx.serialization.descriptors.*
-import kotlinx.serialization.encoding.*
+
+/* INGREDIENTS */
+@Serializable
+enum class Ingredients(val displayName: String) {
+    SALT("Salt"),
+    PEPPER("Black Pepper"),
+    SUGAR("Sugar"),
+    FLOUR("Flour"),
+    RICE("Rice"),
+    PASTA("Pasta"),
+    OLIVE_OIL("Olive Oil"),
+    BUTTER("Butter"),
+    EGGS("Eggs"),
+    MILK("Milk"),
+    CHEESE("Cheese"),
+    GARLIC("Garlic"),
+    ONION("Onion"),
+    POTATO("Potato"),
+    TOMATO("Tomato"),
+    CARROT("Carrot"),
+    CHICKEN("Chicken"),
+    BEEF("Beef"),
+    FISH("Fish"),
+    APPLE("Apple"),
+    BANANA("Banana"),
+    LEMON("Lemon"),
+    LETTUCE("Lettuce"),
+    PEANUT_BUTTER("Peanut Butter"),
+    HONEY("Honey"),
+    VANILLA("Vanilla Extract"),
+    BAKING_SODA("Baking Soda"),
+    YEAST("Yeast"),
+    MUSTARD("Mustard"),
+    KETCHUP("Ketchup"),
+    SOY_SAUCE("Soy Sauce"),
+    VINEGAR("Vinegar"),
+    COCONUT_MILK("Coconut Milk"),
+    CREAM("Heavy Cream");
+
+    override fun toString() = displayName
+}
 
 @Serializable
 data class Ingredient(
@@ -14,128 +53,51 @@ data class Ingredient(
 
 enum class MeasurementSystem { METRIC, IMPERIAL }
 
-@Serializable(with = UnitSerializer::class)
-sealed class Unit(val type: UnitType) {
+@Serializable
+enum class Unit(val type: UnitType, val displayName: String, val shortName: String, val gramFactor: Double? = null, val mlFactor: Double? = null) {
+    // Weight units
+    GRAM(UnitType.WEIGHT, "Gram", "g", gramFactor = 1.0),
+    KILOGRAM(UnitType.WEIGHT, "Kilogram", "kg", gramFactor = 1000.0),
+    OUNCE(UnitType.WEIGHT, "Ounce", "oz", gramFactor = 28.3495),
+    POUND(UnitType.WEIGHT, "Pound", "lb", gramFactor = 453.592),
+
+    // Volume units
+    MILLILITER(UnitType.VOLUME, "Milliliter", "ml", mlFactor = 1.0),
+    LITER(UnitType.VOLUME, "Liter", "L", mlFactor = 1000.0),
+    TEASPOON(UnitType.VOLUME, "Teaspoon", "tsp", mlFactor = 4.92892),
+    TABLESPOON(UnitType.VOLUME, "Tablespoon", "tbsp", mlFactor = 14.7868),
+    CUP(UnitType.VOLUME, "Cup", "cup", mlFactor = 240.0),
+
+    // Count and other units
+    PIECE(UnitType.COUNT, "Piece", ""),
+    SLICE(UnitType.COUNT, "Slice", "slice"),
+    PINCH(UnitType.OTHER, "Pinch", "pinch"),
+    DASH(UnitType.OTHER, "Dash", "dash");
+
     enum class UnitType { WEIGHT, VOLUME, COUNT, OTHER }
-
-    data object Gram : Unit(UnitType.WEIGHT)
-    data object Kilogram : Unit(UnitType.WEIGHT)
-    data object Ounce : Unit(UnitType.WEIGHT)
-    data object Pound : Unit(UnitType.WEIGHT)
-
-    data object Milliliter : Unit(UnitType.VOLUME)
-    data object Liter : Unit(UnitType.VOLUME)
-    data object Teaspoon : Unit(UnitType.VOLUME)
-    data object Tablespoon : Unit(UnitType.VOLUME)
-    data object Cup : Unit(UnitType.VOLUME)
-
-    data object Piece : Unit(UnitType.COUNT)
-    data object Slice : Unit(UnitType.COUNT)
-    data object Pinch : Unit(UnitType.OTHER)
-    data object Dash : Unit(UnitType.OTHER)
-
-    data class Other(val name: String) : Unit(UnitType.OTHER)
 }
-
-object UnitSerializer : KSerializer<Unit> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Unit", PrimitiveKind.STRING)
-
-    override fun deserialize(decoder: Decoder): Unit {
-        return when (val name = decoder.decodeString()) {
-            "Gram" -> Unit.Gram
-            "Kilogram" -> Unit.Kilogram
-            "Ounce" -> Unit.Ounce
-            "Pound" -> Unit.Pound
-            "Milliliter" -> Unit.Milliliter
-            "Liter" -> Unit.Liter
-            "Teaspoon" -> Unit.Teaspoon
-            "Tablespoon" -> Unit.Tablespoon
-            "Cup" -> Unit.Cup
-            "Piece" -> Unit.Piece
-            "Slice" -> Unit.Slice
-            "Pinch" -> Unit.Pinch
-            "Dash" -> Unit.Dash
-            else -> Unit.Other(name)
-        }
-    }
-
-    override fun serialize(encoder: Encoder, value: Unit) {
-        val name = when (value) {
-            is Unit.Gram -> "Gram"
-            is Unit.Kilogram -> "Kilogram"
-            is Unit.Ounce -> "Ounce"
-            is Unit.Pound -> "Pound"
-            is Unit.Milliliter -> "Milliliter"
-            is Unit.Liter -> "Liter"
-            is Unit.Teaspoon -> "Teaspoon"
-            is Unit.Tablespoon -> "Tablespoon"
-            is Unit.Cup -> "Cup"
-            is Unit.Piece -> "Piece"
-            is Unit.Slice -> "Slice"
-            is Unit.Pinch -> "Pinch"
-            is Unit.Dash -> "Dash"
-            is Unit.Other -> value.name
-        }
-        encoder.encodeString(name)
-    }
-}
-
 
 object UnitConverter {
-    private val weightToGram = mapOf(
-        Unit.Gram to 1.0,
-        Unit.Kilogram to 1000.0,
-        Unit.Ounce to 28.3495,
-        Unit.Pound to 453.592
-    )
-
-    private val volumeToMilliliter = mapOf(
-        Unit.Milliliter to 1.0,
-        Unit.Liter to 1000.0,
-        Unit.Teaspoon to 4.92892,
-        Unit.Tablespoon to 14.7868,
-        Unit.Cup to 240.0
-    )
-
     fun convert(quantity: Double, fromUnit: Unit, toUnit: Unit): Double {
-        if (fromUnit::class != toUnit::class || fromUnit.type != toUnit.type) {
-            throw IllegalArgumentException("Cannot convert between different unit types")
-        }
+        require(fromUnit.type == toUnit.type) { "Cannot convert between different unit types" }
 
         return when (fromUnit.type) {
             Unit.UnitType.WEIGHT -> {
-                val qtyInGrams = quantity * (weightToGram[fromUnit] ?: error("Unknown fromUnit"))
-                qtyInGrams / (weightToGram[toUnit] ?: error("Unknown toUnit"))
+                val qtyInGrams = quantity * (fromUnit.gramFactor ?: error("Unknown fromUnit"))
+                qtyInGrams / (toUnit.gramFactor ?: error("Unknown toUnit"))
             }
             Unit.UnitType.VOLUME -> {
-                val qtyInMl = quantity * (volumeToMilliliter[fromUnit] ?: error("Unknown fromUnit"))
-                qtyInMl / (volumeToMilliliter[toUnit] ?: error("Unknown toUnit"))
+                val qtyInMl = quantity * (fromUnit.mlFactor ?: error("Unknown fromUnit"))
+                qtyInMl / (toUnit.mlFactor ?: error("Unknown toUnit"))
             }
             else -> quantity
         }
     }
 }
 
-
-// Format ingredients
 fun formatIngredientDisplay(ingredient: Ingredient): String {
     val quantityFormatted = formatDouble(ingredient.quantity)
-    val unitLabel = when (val unit = ingredient.unit) {
-        is Unit.Gram -> "g"
-        is Unit.Kilogram -> "kg"
-        is Unit.Ounce -> "oz"
-        is Unit.Pound -> "lb"
-        is Unit.Milliliter -> "ml"
-        is Unit.Liter -> "L"
-        is Unit.Teaspoon -> "tsp"
-        is Unit.Tablespoon -> "tbsp"
-        is Unit.Cup -> "cup"
-        is Unit.Slice -> "slice"
-        is Unit.Pinch -> "pinch"
-        is Unit.Dash -> "dash"
-        is Unit.Other -> unit.name
-        is Unit.Piece -> ""
-    }
+    val unitLabel = ingredient.unit.shortName
 
     return if (unitLabel.isNotEmpty()) {
         "$quantityFormatted $unitLabel ${ingredient.name}"
@@ -144,19 +106,15 @@ fun formatIngredientDisplay(ingredient: Ingredient): String {
     }
 }
 
-
 fun formatDouble(quantity: Double): String {
     val intPart = quantity.toInt()
     return if (quantity == intPart.toDouble()) {
         intPart.toString()
     } else {
-        // Fallback: format manually with 2 decimals
         val str = quantity.toString()
-        // Keep only 2 decimals max
         val dotIndex = str.indexOf('.')
         if (dotIndex == -1) return str
         val endIndex = (dotIndex + 3).coerceAtMost(str.length)
         str.substring(0, endIndex).trimEnd('0').trimEnd('.')
     }
 }
-

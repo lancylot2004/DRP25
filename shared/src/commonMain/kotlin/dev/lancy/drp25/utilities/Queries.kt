@@ -1,28 +1,29 @@
-package dev.lancy.drp25.data
+package dev.lancy.drp25.utilities
 
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.Postgrest
+import androidx.compose.runtime.mutableStateOf
+import dev.lancy.drp25.data.Cuisine
+import dev.lancy.drp25.data.Diet
+import dev.lancy.drp25.data.MealType
+import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.Utensil
+import dev.lancy.drp25.data.client
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator.*
 import io.github.jan.supabase.postgrest.query.filter.PostgrestFilterBuilder
 
-
 // Global variable to store all recipes
-var allRecipes: List<Recipe> = emptyList()
+val allRecipes = mutableStateOf(listOf<Recipe>())
 
-suspend fun fetchRecipes() {
+suspend fun fetchAllRecipes() {
     runCatching {
         client.from("recipes").select().decodeList<Recipe>()
     }.onSuccess {
-        allRecipes = it
+        allRecipes.value += it
         println("Fetched ${it.size} recipes")
     }.onFailure {
         println("Failed to fetch recipes: ${it.message}")
     }
 }
-
-
 
 // Recipe filter functions for Supabase-kt
 object RecipeFilters {
@@ -86,7 +87,7 @@ object RecipeFilters {
         filter("portions", LTE, maxPortions)
     }
 
-    // Cooking time filters (with upper and lower bounds)
+    // Cooking time filters
     fun PostgrestFilterBuilder.filterByCookingTime(cookingTime: Int) = apply {
         filter("cookingTime", EQ, cookingTime)
     }
@@ -165,7 +166,7 @@ object RecipeFilters {
         filter("macros", CS, "{\"$macroName\"}")
     }
 
-    // Key ingredients filters (using CS for contains and OR logic for multiple)
+    // Key ingredients filters
     fun PostgrestFilterBuilder.filterByKeyIngredient(ingredient: String) = apply {
         filter("keyIngredients", CS, "[\"$ingredient\"]")
     }
@@ -184,173 +185,96 @@ object RecipeFilters {
         }
     }
 
-    // Effort level filters
-    fun PostgrestFilterBuilder.filterByEffortLevel(effortLevel: RecipeEffortLevel) = apply {
-        filter("effortLevel", EQ, effortLevel.name)
-    }
-
-    fun PostgrestFilterBuilder.filterByEffortLevels(effortLevels: List<RecipeEffortLevel>) = apply {
-        filter("effortLevel", IN, effortLevels.map { it.name })
-    }
-
-    // Helper function to convert RecipeTag to searchable string
-    private fun RecipeTag.toSearchString(): String = when (this) {
-        // Diet tags
-        is Diet.Vegan -> "Diet.Vegan"
-        is Diet.Vegetarian -> "Diet.Vegetarian"
-        is Diet.Halal -> "Diet.Halal"
-        is Diet.Kosher -> "Diet.Kosher"
-        is Diet.GlutenFree -> "Diet.GlutenFree"
-        is Diet.DairyFree -> "Diet.DairyFree"
-        is Diet.NutFree -> "Diet.NutFree"
-        is Diet.LowCarb -> "Diet.LowCarb"
-        is Diet.Keto -> "Diet.Keto"
-        is Diet.Paleo -> "Diet.Paleo"
-        is Diet.Pescatarian -> "Diet.Pescatarian"
-        is Diet.Other -> "Diet.Other:${this.name}"
-
-        // Cuisine tags
-        is Cuisine.Italian -> "Cuisine.Italian"
-        is Cuisine.Chinese -> "Cuisine.Chinese"
-        is Cuisine.Indian -> "Cuisine.Indian"
-        is Cuisine.Mexican -> "Cuisine.Mexican"
-        is Cuisine.American -> "Cuisine.American"
-        is Cuisine.French -> "Cuisine.French"
-        is Cuisine.Japanese -> "Cuisine.Japanese"
-        is Cuisine.Thai -> "Cuisine.Thai"
-        is Cuisine.Spanish -> "Cuisine.Spanish"
-        is Cuisine.MiddleEastern -> "Cuisine.MiddleEastern"
-        is Cuisine.Korean -> "Cuisine.Korean"
-        is Cuisine.Greek -> "Cuisine.Greek"
-        is Cuisine.African -> "Cuisine.African"
-        is Cuisine.German -> "Cuisine.German"
-        is Cuisine.Nordic -> "Cuisine.Nordic"
-        is Cuisine.Other -> "Cuisine.Other:${this.name}"
-
-        // MealType tags
-        is MealType.Breakfast -> "MealType.Breakfast"
-        is MealType.Brunch -> "MealType.Brunch"
-        is MealType.Lunch -> "MealType.Lunch"
-        is MealType.Dinner -> "MealType.Dinner"
-        is MealType.Snack -> "MealType.Snack"
-        is MealType.Dessert -> "MealType.Dessert"
-        is MealType.Supper -> "MealType.Supper"
-        is MealType.Other -> "MealType.Other:${this.name}"
-
-        // Utensil tags
-        is Utensil.Oven -> "Utensil.Oven:${this.temperature}"
-        is Utensil.AirFryer -> "Utensil.AirFryer"
-        is Utensil.InstantPot -> "Utensil.InstantPot"
-        is Utensil.PressureCooker -> "Utensil.PressureCooker"
-        is Utensil.SlowCooker -> "Utensil.SlowCooker"
-        is Utensil.Blender -> "Utensil.Blender"
-        is Utensil.Steamer -> "Utensil.Steamer"
-        is Utensil.Whisk -> "Utensil.Whisk"
-        is Utensil.Scale -> "Utensil.Scale"
-        is Utensil.GarlicPress -> "Utensil.GarlicPress"
-        is Utensil.PastryBag -> "Utensil.PastryBag"
-        is Utensil.MuffinTin -> "Utensil.MuffinTin"
-        is Utensil.BakingDish -> "Utensil.BakingDish"
-        is Utensil.Foil -> "Utensil.Foil"
-        is Utensil.Other -> "Utensil.Other:${this.name}"
-    }
-
-    // Tags filters (using CS for contains and OR logic for multiple)
-    fun PostgrestFilterBuilder.filterByTag(tag: RecipeTag) = apply {
-        filter("tags", CS, "[\"${tag.toSearchString()}\"]")
-    }
-
-    fun PostgrestFilterBuilder.filterByAnyTags(tags: List<RecipeTag>) = apply {
-        or {
-            tags.forEach { tag ->
-                filter("tags", CS, "[\"${tag.toSearchString()}\"]")
-            }
-        }
-    }
-
-    fun PostgrestFilterBuilder.filterByAllTags(tags: List<RecipeTag>) = apply {
-        tags.forEach { tag ->
-            filter("tags", CS, "[\"${tag.toSearchString()}\"]")
-        }
-    }
-
-    // Specific tag type filters
+    // Enum-based tag filters
     fun PostgrestFilterBuilder.filterByDiet(diet: Diet) = apply {
-        filterByTag(diet)
+        filter("diets", CS, "[\"$diet\"]")
     }
 
     fun PostgrestFilterBuilder.filterByAnyDiets(diets: List<Diet>) = apply {
         or {
             diets.forEach { diet ->
-                filter("tags", CS, "[\"${diet.toSearchString()}\"]")
+                filter("diets", CS, "[\"$diet\"]")
             }
         }
     }
 
+    fun PostgrestFilterBuilder.filterByAllDiets(diets: List<Diet>) = apply {
+        diets.forEach { diet ->
+            filter("diets", CS, "[\"$diet\"]")
+        }
+    }
+
     fun PostgrestFilterBuilder.filterByCuisine(cuisine: Cuisine) = apply {
-        filterByTag(cuisine)
+        filter("cuisines", CS, "[\"$cuisine\"]")
     }
 
     fun PostgrestFilterBuilder.filterByAnyCuisines(cuisines: List<Cuisine>) = apply {
         or {
             cuisines.forEach { cuisine ->
-                filter("tags", CS, "[\"${cuisine.toSearchString()}\"]")
+                filter("cuisines", CS, "[\"$cuisine\"]")
             }
         }
     }
 
+    fun PostgrestFilterBuilder.filterByAllCuisines(cuisines: List<Cuisine>) = apply {
+        cuisines.forEach { cuisine ->
+            filter("cuisines", CS, "[\"$cuisine\"]")
+        }
+    }
+
     fun PostgrestFilterBuilder.filterByMealType(mealType: MealType) = apply {
-        filterByTag(mealType)
+        filter("mealTypes", CS, "[\"$mealType\"]")
     }
 
     fun PostgrestFilterBuilder.filterByAnyMealTypes(mealTypes: List<MealType>) = apply {
         or {
             mealTypes.forEach { mealType ->
-                filter("tags", CS, "[\"${mealType.toSearchString()}\"]")
+                filter("mealTypes", CS, "[\"$mealType\"]")
             }
         }
     }
 
+    fun PostgrestFilterBuilder.filterByAllMealTypes(mealTypes: List<MealType>) = apply {
+        mealTypes.forEach { mealType ->
+            filter("mealTypes", CS, "[\"$mealType\"]")
+        }
+    }
+
     fun PostgrestFilterBuilder.filterByUtensil(utensil: Utensil) = apply {
-        filterByTag(utensil)
+        filter("utensils", CS, "[\"$utensil\"]")
     }
 
     fun PostgrestFilterBuilder.filterByAnyUtensils(utensils: List<Utensil>) = apply {
         or {
             utensils.forEach { utensil ->
-                filter("tags", CS, "[\"${utensil.toSearchString()}\"]")
+                filter("utensils", CS, "[\"$utensil\"]")
             }
         }
     }
 
-    // Specialized utensil filters
-    fun PostgrestFilterBuilder.filterByOvenTemperature(minTemp: Int, maxTemp: Int) = apply {
-        // This would require custom logic or storing oven temp separately
-        // For now, filter by any oven and handle temperature filtering in app
-        filter("tags", LIKE, "%Utensil.Oven:%")
-    }
-
-    fun PostgrestFilterBuilder.filterByRequiresOven() = apply {
-        filter("tags", LIKE, "%Utensil.Oven:%")
-    }
-
-    // Convenience filters for common combinations
-    fun PostgrestFilterBuilder.filterVegetarianFriendly() = apply {
-        or {
-            filter("tags", CS, "[\"${Diet.Vegan.toSearchString()}\"]")
-            filter("tags", CS, "[\"${Diet.Vegetarian.toSearchString()}\"]")
+    fun PostgrestFilterBuilder.filterByAllUtensils(utensils: List<Utensil>) = apply {
+        utensils.forEach { utensil ->
+            filter("utensils", CS, "[\"$utensil\"]")
         }
     }
 
-    fun PostgrestFilterBuilder.filterGlutenFriendly() = apply {
-        filter("tags", CS, "[\"${Diet.GlutenFree.toSearchString()}\"]")
+    // Convenience filters
+    fun PostgrestFilterBuilder.filterVegetarianFriendly() = apply {
+        or {
+            filter("diets", CS, "[\"${Diet.VEGAN}\"]")
+            filter("diets", CS, "[\"${Diet.VEGETARIAN}\"]")
+        }
+    }
+
+    fun PostgrestFilterBuilder.filterGlutenFree() = apply {
+        filter("diets", CS, "[\"${Diet.GLUTEN_FREE}\"]")
     }
 
     fun PostgrestFilterBuilder.filterQuickCookingMethods() = apply {
         or {
-            filter("tags", CS, "[\"${Utensil.AirFryer.toSearchString()}\"]")
-            filter("tags", CS, "[\"${Utensil.InstantPot.toSearchString()}\"]")
-            filter("tags", CS, "[\"${Utensil.PressureCooker.toSearchString()}\"]")
+            filter("utensils", CS, "[\"${Utensil.AIR_FRYER}\"]")
+            filter("utensils", CS, "[\"${Utensil.INSTANT_POT}\"]")
+            filter("utensils", CS, "[\"${Utensil.PRESSURE_COOKER}\"]")
         }
     }
 
@@ -391,17 +315,9 @@ object RecipeFilters {
         }
     }
 
-    // Combined time filters (total time = cooking + cleanup)
+    // Combined time filters
     fun PostgrestFilterBuilder.filterByMaxTotalTime(maxTotalTime: Int) = apply {
-        // This assumes you have a computed column or use raw SQL
-        // Alternative: filter in application code after fetching
         filter("(cookingTime + COALESCE(cleanupTime, 0))", LTE, maxTotalTime)
-    }
-
-    // Complex combo filters
-    fun PostgrestFilterBuilder.filterQuickAndEasy(maxCookingTime: Int = 30, maxEffortLevel: RecipeEffortLevel) = apply {
-        filterByMaxCookingTime(maxCookingTime)
-        filterByEffortLevel(maxEffortLevel)
     }
 
     fun PostgrestFilterBuilder.filterHealthy(maxCalories: Int? = null, minRating: Double = 4.0) = apply {
@@ -413,53 +329,29 @@ object RecipeFilters {
 
 // Usage examples:
 /*
-// Basic usage in your repository/service
+// Basic usage with enum filters
 val recipes = supabase.from("recipes").select {
-    // Apply single filter
-    filterByMinRating(4.0)
+    // Single enum filters
+    filterByDiet(Diet.VEGAN)
+    filterByCuisine(Cuisine.ITALIAN)
+    filterByMealType(MealType.DINNER)
+    filterByUtensil(Utensil.AIR_FRYER)
 
-    // Apply multiple filters
+    // Multiple enum filters
+    filterByAnyDiets(listOf(Diet.VEGAN, Diet.VEGETARIAN))
+    filterByAnyCuisines(listOf(Cuisine.ITALIAN, Cuisine.FRENCH))
+
+    // Combine with other filters
     filterByMaxCookingTime(45)
+    filterByMinRating(4.0)
     filterByHasImage()
-    filterByAnyKeyIngredients(listOf("chicken", "vegetables"))
+}.decodeList<Recipe>()
 
-    // Use range filters
-    filterByCookingTimeRange(15, 60)
-    filterByCaloriesRange(200, 800)
-
-    // Tag-specific filters
-    filterByDiet(Diet.Vegan)
-    filterByCuisine(Cuisine.Italian)
-    filterByMealType(MealType.Dinner)
-    filterByUtensil(Utensil.Oven(375))
-
-    // Multiple tag filters
-    filterByAnyDiets(listOf(Diet.Vegan, Diet.Vegetarian))
-    filterByAnyCuisines(listOf(Cuisine.Italian, Cuisine.French))
-
-    // Complex filters
-    filterQuickAndEasy(30, RecipeEffortLevel.LOW_EFFORT)
+// Convenience filters
+val healthyQuickRecipes = supabase.from("recipes").select {
     filterVegetarianFriendly()
     filterQuickCookingMethods()
-}.decodeList<Recipe>()
-
-// Advanced filtering with OR conditions
-val advancedRecipes = supabase.from("recipes").select {
-    or {
-        filterByMinRating(4.5)
-        and {
-            filterByMaxCookingTime(20)
-            filterByEffortLevel(RecipeEffortLevel.LOW_EFFORT)
-            filterVegetarianFriendly()
-        }
-    }
-}.decodeList<Recipe>()
-
-// Filter by multiple criteria
-val healthyItalianRecipes = supabase.from("recipes").select {
-    filterByCuisine(Cuisine.Italian)
-    filterByMaxCalories(600)
+    filterByMaxCookingTime(30)
     filterByMinRating(4.0)
-    filterByEffortLevel(RecipeEffortLevel.MEDIUM_EFFORT)
 }.decodeList<Recipe>()
 */
