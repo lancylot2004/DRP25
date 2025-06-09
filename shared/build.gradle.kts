@@ -1,6 +1,18 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
+//import java.util.Properties
+//import java.io.FileInputStream
+//
+//val properties = Properties()
+//try {
+//    val file = File("local.properties")
+//    FileInputStream(file).use {fis ->
+//        properties.load(fis)
+//        properties.forEach {key, value -> println("   $key = $value")}
+//    }
+//} catch (e: Exception) { throw e }
+
 val properties = loadProperties("local.properties")
 
 plugins {
@@ -42,6 +54,14 @@ kotlin {
         iosMain.dependencies {
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
             implementation(libs.ktor.client.darwin)
+
+            // Kotlin Coroutines | https://github.com/Kotlin/kotlinx.coroutines | Apache-2.0
+            implementation(libs.kotlinx.coroutines.core.v180)
+
+            // Add these for Compose UI on iOS
+            implementation(compose.ui)
+            implementation(compose.foundation)
+            implementation(compose.runtime)
         }
 
         androidMain.dependencies {
@@ -50,6 +70,15 @@ kotlin {
 
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
             implementation(libs.ktor.client.okhttp)
+
+            // Camera X | https://developer.android.com/training/camerax | Apache-2.0
+            implementation(libs.androidx.camera.core)
+            implementation(libs.androidx.camera.camera2)
+            implementation(libs.androidx.camera.lifecycle)
+            implementation(libs.androidx.camera.view)
+
+            // ML Kit barcode-scanning
+            implementation(libs.mlkit.barcode.scanning)
         }
 
         commonMain.dependencies {

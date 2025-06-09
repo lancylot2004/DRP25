@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import com.bumble.appyx.components.spotlight.Spotlight
 import com.bumble.appyx.components.spotlight.SpotlightModel
 import com.bumble.appyx.components.spotlight.operation.activate
@@ -22,6 +23,7 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
+import dev.lancy.drp25.data.FilterStateManager
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.utilities.allRecipes
 import dev.lancy.drp25.ui.main.feed.FeedNode.FeedTarget
@@ -34,15 +36,18 @@ import kotlinx.coroutines.launch
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.Shape
+import dev.lancy.drp25.utilities.applyFilters
 import dev.lancy.drp25.utilities.fetchAllRecipes
+import dev.lancy.drp25.utilities.filteredRecipes
 import kotlin.jvm.JvmInline
 
+@Stable
 class FeedNode(
-    nodeContext: NodeContext,
+    val nodeContext: NodeContext,
     parent: MainNode,
     private val spotlight: Spotlight<FeedTarget> = Spotlight(
         model = SpotlightModel(
-            items = if (allRecipes.value.isNotEmpty()) allRecipes.value.map { FeedTarget(it.id) } else listOf(),
+            items = listOf(),
             initialActiveIndex = 0f,
             savedStateMap = nodeContext.savedStateMap,
         ),
@@ -58,7 +63,7 @@ class FeedNode(
 
         // Animations
         animationSpec = tween(
-            durationMillis = 40,
+            durationMillis = 60,
             easing = FastOutSlowInEasing
         ),
 
@@ -77,13 +82,30 @@ class FeedNode(
 ) : Node<FeedTarget>(spotlight, nodeContext),
     NavProvider<FeedTarget>,
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
+
     @JvmInline
     value class FeedTarget(val id: String) : NavTarget
 
     override fun buildChildNode(
         navTarget: FeedTarget,
         nodeContext: NodeContext,
-    ): Node<*> = FeedCard(nodeContext, this, navTarget.id) // TODO
+    ): Node<*> {
+        return FeedCard(nodeContext, this, navTarget.id)
+    }
+
+    private fun updateSpotlightSafely(recipes: List<Recipe>) {
+        if (recipes.isEmpty()) {
+            spotlight.updateElements(emptyList())
+            return
+        }
+
+        val newTargets = recipes.map { FeedTarget(it.id) }
+        spotlight.updateElements(newTargets)
+
+        // Reset to first item to avoid index out of bounds
+        spotlight.activate(0f)
+    }
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -91,15 +113,29 @@ class FeedNode(
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         val scope = rememberCoroutineScope()
 
-        // Ensure recipes are loaded and spotlight is updated
-        LaunchedEffect(allRecipes.value.size) {
-            if (allRecipes.value.isNotEmpty()) {
-                try {
-                    val feedTargets = allRecipes.value.map { FeedTarget(it.id) }
-                    spotlight.updateElements(feedTargets)
-                } catch (e: Exception) {
-                    println("Error updating spotlight: ${e.message}")
-                    e.printStackTrace()
+        // Use the current filtered recipes
+        val currentRecipes by remember { derivedStateOf { filteredRecipes.value } }
+
+        // Initialize data and spotlight on first load
+        LaunchedEffect(Unit) {
+            if (allRecipes.value.isEmpty()) {
+                fetchAllRecipes()
+            }
+        }
+
+        // Update spotlight whenever filtered recipes change
+        LaunchedEffect(currentRecipes) {
+            println("Recipes updated: ${currentRecipes.size} recipes")
+            updateSpotlightSafely(currentRecipes)
+        }
+
+        // Auto-apply filters when sheet is dismissed
+        LaunchedEffect(sheetState.isVisible) {
+            if (!sheetState.isVisible) {
+                scope.launch {
+                    println("Applying filters: ${FilterStateManager.currentFilters}")
+                    applyFilters(FilterStateManager.currentFilters)
+                    FilterStateManager.saveFilters()
                 }
             }
         }
@@ -124,7 +160,21 @@ class FeedNode(
                 }
             }
 
-            AppyxNavigationContainer(spotlight)
+            if (currentRecipes.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No recipes match your filters",
+                        color = Color.White,
+                        style = Typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                AppyxNavigationContainer(spotlight)
+            }
         }
 
         if (sheetState.isVisible) {
@@ -138,8 +188,18 @@ class FeedNode(
     }
 
     override suspend fun <C : NavTarget> navigate(target: FeedTarget): Node<C> = attachChild {
-        val ind = spotlight.elements.value.onScreen?.indexOfFirst { it.interactionTarget == target }
-        if (ind == null || ind < 0) { TODO() }
-        spotlight.activate(ind.toFloat())
+        val elements = spotlight.elements.value.onScreen
+        val ind = elements?.indexOfFirst { it.interactionTarget == target }
+
+        if (ind == null || ind < 0 || elements.isEmpty()) {
+            val allElements = spotlight.elements.value.all
+            if (allElements.isNotEmpty()) { spotlight.activate(0f) }
+            return@attachChild
+        }
+
+        // Ensure index is within bounds
+        val maxIndex = elements.size - 1
+        val safeIndex = ind.coerceIn(0, maxIndex).toFloat()
+        spotlight.activate(safeIndex)
     }
 }

@@ -159,7 +159,7 @@ class RecipeNode(
         IconText(
             Lucide.Carrot,
             "Tags",
-            listOf(recipe.mealType, recipe.diet, recipe.cuisine).joinToString()
+            listOfNotNull(recipe.mealType, recipe.diet, recipe.cuisine).joinToString()
         )
 
 

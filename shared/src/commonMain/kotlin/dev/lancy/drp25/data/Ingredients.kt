@@ -100,9 +100,9 @@ fun formatIngredientDisplay(ingredient: Ingredient): String {
     val unitLabel = ingredient.unit.shortName
 
     return if (unitLabel.isNotEmpty()) {
-        "$quantityFormatted $unitLabel ${ingredient.name}"
+        "$quantityFormatted $unitLabel ${ingredient.name.lowercase()}"
     } else {
-        "$quantityFormatted ${ingredient.name}"
+        "$quantityFormatted ${ingredient.name.lowercase()}"
     }
 }
 

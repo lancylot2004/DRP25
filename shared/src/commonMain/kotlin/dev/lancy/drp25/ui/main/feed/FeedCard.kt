@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -48,6 +50,7 @@ import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import dev.lancy.drp25.utilities.allRecipes
+import dev.lancy.drp25.utilities.filteredRecipes
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
@@ -63,9 +66,29 @@ class FeedCard(
         val hazeState = remember { HazeState() }
         val scope = rememberCoroutineScope()
 
-        val recipe = remember(recipeID) {
-            allRecipes.value.find { it.id == recipeID }
-        } ?: throw IllegalStateException("Recipe with id $recipeID not found")
+        // Use derivedStateOf to reactively get the current recipe
+        val recipe by remember(recipeID) {
+            derivedStateOf {
+                // First check filtered recipes (current view), then all recipes as fallback
+                filteredRecipes.value.find { it.id == recipeID }
+                    ?: allRecipes.value.find { it.id == recipeID }
+            }
+        }
+
+        // Handle case where recipe is not found
+        if (recipe == null) {
+            Box(
+                modifier = modifier.fillMaxSize().padding(Size.BigPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Recipe not found",
+                    style = Typography.bodyMedium,
+                    color = ColourScheme.onBackground
+                )
+            }
+            return
+        }
 
         Box(
             modifier = modifier
@@ -77,14 +100,14 @@ class FeedCard(
                     scope.launch {
                         this@FeedCard
                             .navParent.navParent
-                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe(recipe.id))
+                            .superNavigate<RootNode.RootTarget>(RootNode.RootTarget.Recipe(recipe!!.id))
                     }
                 }
         ) {
             // Background image
             KamelImage(
-                resource = { asyncPainterResource(recipe.cardImage) },
-                contentDescription = recipe.name,
+                resource = { asyncPainterResource(recipe!!.cardImage) },
+                contentDescription = recipe!!.name,
                 modifier = Modifier
                     .fillMaxSize()
                     .haze(state = hazeState),
@@ -102,12 +125,12 @@ class FeedCard(
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    text = recipe.name,
+                    text = recipe!!.name,
                     style = Typography.titleMedium,
                     color = ColourScheme.onBackground
                 )
 
-                StarRating(recipe.rating)
+                StarRating(recipe!!.rating)
 
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
@@ -115,15 +138,15 @@ class FeedCard(
                     horizontalArrangement = Arrangement.spacedBy(Size.Padding),
                     itemVerticalAlignment = Alignment.CenterVertically,
                 ) {
-                    IconText(Lucide.Clock, "Cooking Time", "${recipe.cookingTime} min")
+                    IconText(Lucide.Clock, "Cooking Time", "${recipe!!.cookingTime} min")
 
-                    recipe.calories?.let {
+                    recipe!!.calories?.let {
                         IconText(Lucide.Zap, "Calories", "$it kcal")
                     }
 
-                    IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
+                    IconText(Lucide.Users, "Servings", "${recipe!!.portions} portions")
 
-                    IconText(Lucide.Carrot, "Key Ingredients", recipe.keyIngredients.joinToString(", "))
+                    IconText(Lucide.Carrot, "Key Ingredients", recipe!!.keyIngredients.joinToString(", "))
                 }
 
                 // Chips
