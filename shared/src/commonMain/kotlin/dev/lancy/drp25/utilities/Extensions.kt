@@ -8,10 +8,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.spotlight.Spotlight
-import dev.lancy.drp25.data.Ingredient
-import dev.lancy.drp25.data.Recipe
-import dev.lancy.drp25.data.Step
 import dev.lancy.drp25.ui.shared.NavTarget
+import kotlin.math.ceil
+import kotlin.math.floor
 
 @Composable
 fun textWidth(
@@ -29,3 +28,9 @@ fun <T : NavTarget> BackStack<T>.currentTarget(): T =
 @Composable
 fun <T: NavTarget> Spotlight<T>.selectedIndex(): Int =
     this.activeIndex.collectAsState().value.toInt()
+
+fun ClosedFloatingPointRange<Float>.toIntString(): String {
+    return if (ceil(start).toInt() <= floor(endInclusive).toInt()) {
+        (ceil(start).toInt()..floor(endInclusive).toInt()).joinToString(", ", "(", ")")
+    } else { "()" }
+}

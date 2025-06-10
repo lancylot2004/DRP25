@@ -1,18 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
-//import java.util.Properties
-//import java.io.FileInputStream
-//
-//val properties = Properties()
-//try {
-//    val file = File("local.properties")
-//    FileInputStream(file).use {fis ->
-//        properties.load(fis)
-//        properties.forEach {key, value -> println("   $key = $value")}
-//    }
-//} catch (e: Exception) { throw e }
-
 val properties = loadProperties("local.properties")
 
 plugins {
@@ -23,7 +11,6 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.realm)
 }
 
 detekt {
@@ -54,9 +41,6 @@ kotlin {
         iosMain.dependencies {
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
             implementation(libs.ktor.client.darwin)
-
-            // Kotlin Coroutines | https://github.com/Kotlin/kotlinx.coroutines | Apache-2.0
-            implementation(libs.kotlinx.coroutines.core.v180)
 
             // Add these for Compose UI on iOS
             implementation(compose.ui)
@@ -122,9 +106,6 @@ kotlin {
             // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
             implementation(libs.kamel.image)
 
-            // Realm Database | https://github.com/realm/realm-kotlin | Apache-2.0
-            implementation(libs.realm.base)
-
             // Supabase | https://github.com/supabase/supabase-kt | Apache-2.0
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.kt)
@@ -135,21 +116,12 @@ kotlin {
 
 android {
     namespace = "dev.lancy.drp25"
-    compileSdk =
-        libs.versions.android.compileSdk
-            .get()
-            .toInt()
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "dev.lancy.drp25"
-        minSdk =
-            libs.versions.android.minSdk
-                .get()
-                .toInt()
-        targetSdk =
-            libs.versions.android.targetSdk
-                .get()
-                .toInt()
+        minSdk = 24
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }

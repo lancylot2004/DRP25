@@ -1,8 +1,5 @@
 package dev.lancy.drp25.data
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import kotlin.math.roundToInt
 
 // Filter data class
@@ -18,7 +15,7 @@ data class FilterValues(
     val calorieRange: ClosedFloatingPointRange<Float> = FilterRanges.CALORIE_DEFAULT,
     val proteinRange: ClosedFloatingPointRange<Float> = FilterRanges.PROTEIN_DEFAULT,
     val fatRange: ClosedFloatingPointRange<Float> = FilterRanges.FAT_DEFAULT,
-    val carbsRange: ClosedFloatingPointRange<Float> = FilterRanges.CARBS_DEFAULT
+    val carbsRange: ClosedFloatingPointRange<Float> = FilterRanges.CARBS_DEFAULT,
 )
 
 // Filter ranges
@@ -46,51 +43,13 @@ object FilterRanges {
     val CARBS_DEFAULT = 20f..80f
 }
 
-// Manage filter state persistence across app sessions
-object FilterStateManager {
-    // Persistent filter state
-    var savedFilters by mutableStateOf(FilterValues())
-        private set
-
-    // Current working filters (used while editing)
-    var currentFilters by mutableStateOf(FilterValues())
-        private set
-
-    // Update current filters while editing
-    fun updateCurrentFilters(filters: FilterValues) {
-        currentFilters = filters
-    }
-
-    // Save current filters as the new default
-    fun saveFilters() {
-        savedFilters = currentFilters
-    }
-
-    // Reset all filters to default values
-    fun resetToDefaults() {
-        currentFilters = FilterValues()
-        savedFilters = FilterValues()
-    }
-
-    // Initialize filters (call this when app starts)
-    fun initialize() {
-        if (savedFilters == FilterValues()) {
-            resetToDefaults()
-        } else {
-            currentFilters = savedFilters
-        }
-    }
-}
-
 // Filter formatters
 object FilterFormatters {
-    fun formatTime(minutes: Float): String {
-        return when {
-            minutes < 60f -> "${minutes.toInt()} min"
-            minutes == 60f -> "1 hour"
-            minutes < 120f -> "1h ${(minutes - 60).toInt()}min"
-            else -> "${(minutes / 60).toInt()}h ${(minutes % 60).toInt()}m"
-        }
+    fun formatTime(minutes: Float): String = when {
+        minutes < 60f -> "${minutes.toInt()} min"
+        minutes == 60f -> "1 hour"
+        minutes < 120f -> "1h ${(minutes - 60).toInt()}min"
+        else -> "${(minutes / 60).toInt()}h ${(minutes % 60).toInt()}m"
     }
 
     fun formatRating(rating: Float): String {
@@ -102,7 +61,7 @@ object FilterFormatters {
 
         return when {
             rounded == 5.0f -> "5.0 stars only"
-            else            -> "$oneDecimal+ stars"
+            else -> "$oneDecimal+ stars"
         }
     }
 }
