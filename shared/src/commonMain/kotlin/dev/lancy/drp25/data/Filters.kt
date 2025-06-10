@@ -1,6 +1,7 @@
 package dev.lancy.drp25.data
 
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.minutes
 
 // Filter data class
 data class FilterValues(

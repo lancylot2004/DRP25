@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,7 +66,6 @@ class FeedNode(
         launch {
             val newRecipes = fetchRecipes(filterValues)
             withContext(Dispatchers.Main) { onUpdate(newRecipes) }
-            println("[debug] Spotlight updated with ${newRecipes.size} recipes.")
         }
     }
 
@@ -147,16 +147,18 @@ class FeedNode(
                 }
             }
 
-            AnimatedVisibility(
-                visible = sheetState.isVisible,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            ) {
+            AnimatedVisibility(sheetState.isVisible) {
                 ModalBottomSheet(
-                    modifier = Modifier.fillMaxHeight(Size.ModalSheetHeight),
+                    modifier = Modifier
+                        .fillMaxHeight(Size.ModalSheetHeight)
+                        .align(Alignment.BottomCenter),
                     shape = Shape.RoundedLarge,
                     sheetState = sheetState,
                     onDismissRequest = { scope.launch { sheetState.hide() } },
-                ) { FilterContent { filterValues = it } }
+                    dragHandle = {},
+                ) {
+                    Column { FilterContent { filterValues = it } }
+                }
             }
         }
     }

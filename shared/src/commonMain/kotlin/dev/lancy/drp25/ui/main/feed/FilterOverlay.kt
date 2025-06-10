@@ -1,135 +1,113 @@
 package dev.lancy.drp25.ui.main.feed
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.remember
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.*
+import com.composables.icons.lucide.CircleX
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Star
 import dev.lancy.drp25.data.*
-import dev.lancy.drp25.data.FilterFormatters.formatTime
 import dev.lancy.drp25.utilities.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterContent(updateCallback: (FilterValues) -> Unit) {
+fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
     var filterValues by remember { mutableStateOf(FilterValues()) }
     LaunchedEffect(filterValues) {
         updateCallback(filterValues)
     }
 
+    Text(
+        "Filters",
+        style = Typography.titleMedium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = Size.Padding)
+            .align(Alignment.CenterHorizontally),
+        textAlign = TextAlign.Center,
+    )
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = Size.Padding, bottom = Size.BarLarge, start = Size.Padding, end = Size.Padding),
+            .padding(Size.Padding)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(Size.BigPadding),
     ) {
-        Text("Filters", style = Typography.titleMedium, modifier = Modifier.fillMaxWidth())
-        Spacer(modifier = Modifier.height(8.dp))
+        SliderSection(
+            title = "Cook Time",
+            value = filterValues.timeRange,
+            range = FilterRanges.TIME_RANGE,
+            format = { formatRange(it, FilterRanges.TIME_RANGE, "min", "any duration") },
+        ) { filterValues = filterValues.copy(timeRange = it) }
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            SliderSection(
-                "Time",
-                filterValues.timeRange,
-                FilterRanges.TIME_RANGE,
-                { "${formatTime(it.start)} - ${formatTime(it.endInclusive)}" },
-            ) {
-                filterValues = filterValues.copy(timeRange = it)
-            }
+        StarRatingSection(
+            title = "Minimum rating",
+            rating = filterValues.rating,
+        ) { filterValues = filterValues.copy(rating = it) }
 
-            SingleSliderSection(
-                "Minimum Rating",
-                filterValues.rating,
-                FilterRanges.RATING_RANGE,
-                FilterRanges.RATING_STEPS,
-                FilterFormatters::formatRating,
-            ) {
-                filterValues = filterValues.copy(rating = it)
-            }
+        ChipSelectionSection(
+            "Type of meal",
+            MealType.entries,
+            filterValues.selectedMealTypes,
+        ) { filterValues = filterValues.copy(selectedMealTypes = it) }
 
-            ChipSelectionSection(
-                "Type of meal",
-                MealType.entries,
-                filterValues.selectedMealTypes,
-                { it.displayName },
-                Color(0xFF2196F3),
-            ) {
-                filterValues = filterValues.copy(selectedMealTypes = it)
-            }
+        ChipSelectionSection(
+            "Cuisine",
+            Cuisine.entries,
+            filterValues.selectedCuisines,
+        ) { filterValues = filterValues.copy(selectedCuisines = it) }
 
-            ChipSelectionSection(
-                "Cuisine",
-                Cuisine.entries,
-                filterValues.selectedCuisines,
-                { it.displayName },
-                Color(0xFF9C27B0),
-            ) {
-                filterValues = filterValues.copy(selectedCuisines = it)
-            }
+        ChipSelectionSection(
+            "Dietary needs",
+            Diet.entries,
+            filterValues.selectedDiets,
+        ) { filterValues = filterValues.copy(selectedDiets = it) }
 
-            ChipSelectionSection(
-                "Dietary needs",
-                Diet.entries,
-                filterValues.selectedDiets,
-                { it.displayName },
-                Color(0xFF4CAF50),
-            ) {
-                filterValues = filterValues.copy(selectedDiets = it)
-            }
+        BinarySection(
+            title = "Use only my equipment",
+            value = filterValues.useMyEquipmentOnly,
+            onValueChange = { filterValues = filterValues.copy(useMyEquipmentOnly = it) },
+        )
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Only use my equipment", style = Typography.bodyMedium)
-                Switch(
-                    checked = filterValues.useMyEquipmentOnly,
-                    onCheckedChange = { filterValues = filterValues.copy(useMyEquipmentOnly = it) },
-                )
-            }
+        SliderSection(
+            "Calories",
+            filterValues.calorieRange,
+            FilterRanges.CALORIE_RANGE,
+            { formatRange(it, FilterRanges.CALORIE_RANGE, "cal", "any calories") },
+        ) { filterValues = filterValues.copy(calorieRange = it) }
 
-            SliderSection(
-                "Calories",
-                filterValues.calorieRange,
-                FilterRanges.CALORIE_RANGE,
-                { "${it.start.toInt()} - ${it.endInclusive.toInt()} cal" },
-            ) {
-                filterValues = filterValues.copy(calorieRange = it)
-            }
+        SliderSection(
+            "Protein",
+            filterValues.proteinRange,
+            FilterRanges.PROTEIN_RANGE,
+            { formatRange(it, FilterRanges.PROTEIN_RANGE, "g", "any protein content") },
+        ) { filterValues = filterValues.copy(proteinRange = it) }
 
-            SliderSection(
-                "Protein",
-                filterValues.proteinRange,
-                FilterRanges.PROTEIN_RANGE,
-                { "${it.start.toInt()} - ${it.endInclusive.toInt()}g" },
-            ) {
-                filterValues = filterValues.copy(proteinRange = it)
-            }
+        SliderSection(
+            "Fat",
+            filterValues.fatRange,
+            FilterRanges.FAT_RANGE,
+            { formatRange(it, FilterRanges.FAT_RANGE, "g", "any fat content") },
+        ) { filterValues = filterValues.copy(fatRange = it) }
 
-            SliderSection(
-                "Fat",
-                filterValues.fatRange,
-                FilterRanges.FAT_RANGE,
-                { "${it.start.toInt()} - ${it.endInclusive.toInt()}g" },
-            ) {
-                filterValues = filterValues.copy(fatRange = it)
-            }
-
-            SliderSection(
-                "Carbohydrates",
-                filterValues.carbsRange,
-                FilterRanges.CARBS_RANGE,
-                { "${it.start.toInt()} - ${it.endInclusive.toInt()}g" },
-            ) {
-                filterValues = filterValues.copy(carbsRange = it)
-            }
-        }
+        SliderSection(
+            "Carbohydrates",
+            filterValues.carbsRange,
+            FilterRanges.CARBS_RANGE,
+            { formatRange(it, FilterRanges.CARBS_RANGE, "g", "any carb content") },
+        ) { filterValues = filterValues.copy(carbsRange = it) }
     }
 }
 
@@ -137,30 +115,47 @@ fun FilterContent(updateCallback: (FilterValues) -> Unit) {
 private fun SliderSection(
     title: String,
     value: ClosedFloatingPointRange<Float>,
-    valueRange: ClosedFloatingPointRange<Float>,
-    formatValue: (ClosedFloatingPointRange<Float>) -> String,
-    onValueChange: (ClosedFloatingPointRange<Float>) -> Unit,
+    range: ClosedFloatingPointRange<Float>,
+    format: (ClosedFloatingPointRange<Float>) -> String,
+    onChange: (ClosedFloatingPointRange<Float>) -> Unit,
 ) {
-    Text(title, style = Typography.bodyMedium, modifier = Modifier.padding(top = 16.dp))
     Column {
-        RangeSlider(value = value, onValueChange = onValueChange, valueRange = valueRange, modifier = Modifier.fillMaxWidth())
-        Text(formatValue(value), style = Typography.bodySmall, color = Color.Gray, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(title, style = Typography.titleSmall)
+
+            Text(format(value), style = Typography.titleSmall, color = ColourScheme.onBackground.copy(alpha = 0.7f))
+        }
+
+        // Could separate onValueChange with onValueChangeFinished to optimise.
+
+        RangeSlider(
+            value,
+            onValueChange = { onChange(it) },
+            modifier = Modifier.fillMaxWidth(),
+            valueRange = range,
+            steps = FilterRanges.TIME_RANGE.intSteps(),
+        )
     }
 }
 
-@Composable
-private fun SingleSliderSection(
-    title: String,
-    value: Float,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    formatValue: (Float) -> String,
-    onValueChange: (Float) -> Unit,
-) {
-    Text(title, style = Typography.bodyMedium, modifier = Modifier.padding(top = 16.dp))
-    Column {
-        Slider(value = value, onValueChange = onValueChange, valueRange = valueRange, steps = steps, modifier = Modifier.fillMaxWidth())
-        Text(formatValue(value), style = Typography.bodySmall, color = Color.Gray, modifier = Modifier.align(Alignment.CenterHorizontally))
+private fun formatRange(
+    value: ClosedFloatingPointRange<Float>,
+    range: ClosedFloatingPointRange<Float>,
+    unit: String,
+    anyMessage: String,
+): String {
+    val start = value.start
+    val end = value.endInclusive
+
+    return when {
+        start == end -> "${start.toInt()} $unit"
+        start == range.start && end == range.endInclusive -> anyMessage
+        start == range.start -> "Up to ${end.toInt()} $unit"
+        end == range.endInclusive -> "At least ${start.toInt()} min"
+        else -> "${start.toInt()} to ${end.toInt()} $unit"
     }
 }
 
@@ -168,44 +163,125 @@ private fun SingleSliderSection(
 private fun <T> ChipSelectionSection(
     title: String,
     items: List<T>,
-    selectedItems: Set<T>,
-    getDisplayName: (T) -> String,
-    chipColor: Color,
+    selection: Set<T>,
     onSelectionChange: (Set<T>) -> Unit,
 ) {
-    Text(title, style = Typography.bodyMedium, modifier = Modifier.padding(top = 16.dp))
-    FlowRow(modifier = Modifier.padding(top = 8.dp)) {
-        items.forEach { item ->
-            val isSelected = selectedItems.contains(item)
-            var isPressed by remember { mutableStateOf(false) }
+    Column {
+        Text(title, style = Typography.titleSmall)
 
-            val animatedScale by animateFloatAsState(if (isPressed) 0.95f else 1f, tween(100))
-            val animatedColor by animateColorAsState(if (isSelected) chipColor else Color.LightGray, tween(200))
+        FlowRow(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(Size.Spacing),
+            verticalArrangement = Arrangement.spacedBy(Size.Spacing),
+        ) {
+            items.forEach { item ->
+                val selected = item in selection
 
-            AssistChip(
-                onClick = {
-                    isPressed = true
-                    onSelectionChange(if (isSelected) selectedItems - item else selectedItems + item)
-                },
-                label = { androidx.compose.material.Text(getDisplayName(item), style = Typography.bodySmall) },
-                modifier = Modifier
-                    .defaultMinSize(minHeight = 28.dp)
-                    .padding(end = 4.dp, bottom = 4.dp)
-                    .scale(animatedScale)
-                    .pointerInput(Unit) { detectDragGestures(onDragEnd = { isPressed = false }) { _, _ -> } },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = animatedColor,
-                    labelColor = if (isSelected) Color.White else Color.Black,
-                ),
-                shape = Shape.RoundedLarge,
-                elevation = AssistChipDefaults.assistChipElevation(elevation = if (isSelected) 6.dp else 2.dp),
+                FilterChip(
+                    selected = selected,
+                    onClick = { onSelectionChange(if (selected) selection - item else selection + item) },
+                    label = { Text(item.toString(), style = Typography.bodyMedium) },
+                    shape = Shape.RoundedMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BinarySection(
+    title: String,
+    value: Boolean,
+    onValueChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = Typography.titleSmall)
+
+        Switch(
+            checked = value,
+            onCheckedChange = onValueChange,
+        )
+    }
+}
+
+@Composable
+private fun StarRatingSection(
+    title: String,
+    rating: Float,
+    onRatingChanged: (Float) -> Unit,
+) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(title, style = Typography.titleSmall)
+
+        Spacer(Modifier.weight(1f))
+
+        StarRatingSelector(
+            rating = rating,
+            onRatingChanged = onRatingChanged,
+        )
+
+        Spacer(Modifier.width(Size.Spacing))
+
+        IconButton(
+            onClick = { onRatingChanged(0f) },
+            modifier = Modifier.size(Size.IconSmall),
+        ) {
+            Icon(
+                imageVector = Lucide.CircleX,
+                contentDescription = "Clear rating",
+                tint = Color.LightGray,
+            )
+        }
+    }
+}
+
+@Composable
+private fun StarRatingSelector(
+    rating: Float,
+    onRatingChanged: (Float) -> Unit,
+) {
+    val clamped = rating.coerceIn(0f, 5f)
+
+    Row(horizontalArrangement = Arrangement.spacedBy(Size.Spacing)) {
+        repeat(5) { index ->
+            val targetFill = (clamped - index).coerceIn(0f, 1f)
+            val animatedFill by animateFloatAsState(
+                targetValue = targetFill,
+                label = "starFillAnimation",
             )
 
-            LaunchedEffect(isPressed) {
-                if (isPressed) {
-                    kotlinx.coroutines.delay(100)
-                    isPressed = false
-                }
+            Box(
+                modifier = Modifier
+                    .size(Size.IconSmall)
+                    .pointerInput(Unit) {
+                        detectTapGestures { onRatingChanged(index + 1f) }
+                    },
+            ) {
+                // Empty background star
+                Icon(
+                    imageVector = Lucide.Star,
+                    contentDescription = null,
+                    tint = Color.LightGray,
+                    modifier = Modifier.fillMaxSize(),
+                )
+
+                // Filled foreground star
+                Icon(
+                    imageVector = Lucide.Star,
+                    contentDescription = null,
+                    tint = Color(0xFFFFD700),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawWithContent {
+                            clipRect(right = size.width * animatedFill) {
+                                this@drawWithContent.drawContent()
+                            }
+                        },
+                )
             }
         }
     }

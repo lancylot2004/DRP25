@@ -47,10 +47,7 @@ suspend fun fetchRecipes(filters: FilterValues? = null): List<Recipe> = runCatch
         .select(request = { applyRecipeFilters(filters) })
         .decodeList<Recipe>()
 }.fold(
-    onSuccess = { recipes ->
-        println("Fetched ${recipes.size} recipes")
-        recipes
-    },
+    onSuccess = ::identity,
     onFailure = { error ->
         println("Failed to fetch recipes: ${error.message}")
         emptyList<Recipe>()
