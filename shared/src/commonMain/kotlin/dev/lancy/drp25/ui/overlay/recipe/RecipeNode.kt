@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Divider
@@ -40,7 +41,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Carrot
@@ -51,7 +51,6 @@ import com.composables.icons.lucide.Diamond
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Square
 import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
@@ -63,30 +62,26 @@ import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.utilities.Animation
 import dev.lancy.drp25.utilities.ColourScheme
+import dev.lancy.drp25.utilities.Const
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.allRecipes
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
 
 class RecipeNode(
     nodeContext: NodeContext,
-    private val recipeID: String,
+    private val recipe: Recipe,
     parent: RootNode,
     private val back: () -> Unit,
 ) : LeafNode(nodeContext),
     NavConsumer<RootNode.RootTarget, RootNode> by NavConsumerImpl(parent) {
-
     @OptIn(ExperimentalKamelApi::class)
     @Composable
     override fun Content(modifier: Modifier) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             val hazeState = remember { HazeState() }
-            val recipe = remember(recipeID) {
-                allRecipes.value.find { it.id == recipeID }
-            } ?: throw IllegalStateException("Recipe with id $recipeID not found")
 
             KamelImageBox(
                 resource = {
@@ -110,28 +105,38 @@ class RecipeNode(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(Brush.verticalGradient(
-                            .3f to Color.Transparent,
-                            1f to ColourScheme.background.copy(alpha = 0.8f),
-                        )),
+                        .background(
+                            Brush.verticalGradient(
+                                .3f to Color.Transparent,
+                                1f to ColourScheme.background.copy(alpha = 0.8f),
+                            ),
+                        ),
                 )
 
                 IconButton(
-                    modifier = Modifier.align(Alignment.TopStart),
-                    onClick = back
+                    modifier = Modifier
+                        .padding(Size.Padding)
+                        .align(Alignment.TopStart)
+                        .clip(Shape.RoundedMedium)
+                        .hazeChild(hazeState, shape = Shape.RoundedMedium, style = Const.HazeStyle),
+                    onClick = back,
                 ) {
                     Icon(
                         Lucide.ChevronLeft,
                         contentDescription = "Back",
-                        tint = ColourScheme.onBackground
+                        tint = ColourScheme.onBackground,
                     )
                 }
 
                 Text(
                     text = recipe.name,
                     modifier = Modifier
-                        .hazeChild(hazeState, style = HazeStyle(blurRadius = 2.dp, noiseFactor = 10f))
-                        .clip(Shape.RoundedMedium)
+                        .fillMaxWidth()
+                        .hazeChild(
+                            hazeState,
+                            shape = Shape.RoundedMedium.copy(topStart = CornerSize(0), topEnd = CornerSize(0)),
+                            style = Const.HazeStyle,
+                        ).clip(Shape.RoundedMedium)
                         .padding(Size.Padding),
                     style = Typography.titleMedium,
                     color = ColourScheme.onBackground,
@@ -159,9 +164,8 @@ class RecipeNode(
         IconText(
             Lucide.Carrot,
             "Tags",
-            listOf(recipe.mealType, recipe.diet, recipe.cuisine).joinToString()
+            listOfNotNull(recipe.mealType, recipe.diet, recipe.cuisine).joinToString(),
         )
-
 
         Section("Ingredients") {
             recipe.ingredients.forEach { ingredient ->
@@ -169,7 +173,7 @@ class RecipeNode(
                 IconText(
                     Lucide.Square,
                     formatted,
-                    formatted
+                    formatted,
                 )
             }
         }

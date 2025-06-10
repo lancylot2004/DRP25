@@ -1,17 +1,12 @@
 package dev.lancy.drp25.data
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import arrow.core.toNonEmptyListOrNull
+import com.bumble.appyx.utils.multiplatform.Parcelable
+import com.bumble.appyx.utils.multiplatform.Parcelize
 import dev.lancy.drp25.ui.shared.NavTarget
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Parcelize
 data class Recipe(
     val id: String = "",
     val name: String,
@@ -32,10 +27,12 @@ data class Recipe(
     val cardImage: String = "",
     val smallImage: String = "",
     val video: String? = null,
-) : NavTarget
+) : NavTarget,
+    Parcelable
 
 @Serializable
+@Parcelize
 class Step(
     var description: String = "",
     var videoTimestamp: Int? = null,
-)
+) : Parcelable
