@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.remember
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Color
@@ -22,8 +21,7 @@ import dev.lancy.drp25.utilities.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
-    var filterValues by remember { mutableStateOf(FilterValues()) }
+fun ColumnScope.FilterContent(filterValues: FilterValues, updateCallback: (FilterValues) -> Unit) {
     LaunchedEffect(filterValues) {
         updateCallback(filterValues)
     }
@@ -50,35 +48,35 @@ fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
             value = filterValues.timeRange,
             range = FilterRanges.TIME_RANGE,
             format = { formatRange(it, FilterRanges.TIME_RANGE, "min", "any duration") },
-        ) { filterValues = filterValues.copy(timeRange = it) }
+        ) { updateCallback(filterValues.copy(timeRange = it)) }
 
         StarRatingSection(
             title = "Minimum rating",
             rating = filterValues.rating,
-        ) { filterValues = filterValues.copy(rating = it) }
+        ) { updateCallback(filterValues.copy(rating = it)) }
 
         ChipSelectionSection(
             "Type of meal",
             MealType.entries,
             filterValues.selectedMealTypes,
-        ) { filterValues = filterValues.copy(selectedMealTypes = it) }
+        ) { updateCallback(filterValues.copy(selectedMealTypes = it)) }
 
         ChipSelectionSection(
             "Cuisine",
             Cuisine.entries,
             filterValues.selectedCuisines,
-        ) { filterValues = filterValues.copy(selectedCuisines = it) }
+        ) { updateCallback(filterValues.copy(selectedCuisines = it)) }
 
         ChipSelectionSection(
             "Dietary needs",
             Diet.entries,
             filterValues.selectedDiets,
-        ) { filterValues = filterValues.copy(selectedDiets = it) }
+        ) { updateCallback(filterValues.copy(selectedDiets = it)) }
 
         BinarySection(
             title = "Use only my equipment",
             value = filterValues.useMyEquipmentOnly,
-            onValueChange = { filterValues = filterValues.copy(useMyEquipmentOnly = it) },
+            onValueChange = { updateCallback(filterValues.copy(useMyEquipmentOnly = it)) },
         )
 
         SliderSection(
@@ -86,28 +84,28 @@ fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
             filterValues.calorieRange,
             FilterRanges.CALORIE_RANGE,
             { formatRange(it, FilterRanges.CALORIE_RANGE, "cal", "any calories") },
-        ) { filterValues = filterValues.copy(calorieRange = it) }
+        ) { updateCallback(filterValues.copy(calorieRange = it)) }
 
         SliderSection(
             "Protein",
             filterValues.proteinRange,
             FilterRanges.PROTEIN_RANGE,
             { formatRange(it, FilterRanges.PROTEIN_RANGE, "g", "any protein content") },
-        ) { filterValues = filterValues.copy(proteinRange = it) }
+        ) { updateCallback(filterValues.copy(proteinRange = it)) }
 
         SliderSection(
             "Fat",
             filterValues.fatRange,
             FilterRanges.FAT_RANGE,
             { formatRange(it, FilterRanges.FAT_RANGE, "g", "any fat content") },
-        ) { filterValues = filterValues.copy(fatRange = it) }
+        ) { updateCallback(filterValues.copy(fatRange = it)) }
 
         SliderSection(
             "Carbohydrates",
             filterValues.carbsRange,
             FilterRanges.CARBS_RANGE,
             { formatRange(it, FilterRanges.CARBS_RANGE, "g", "any carb content") },
-        ) { filterValues = filterValues.copy(carbsRange = it) }
+        ) { updateCallback(filterValues.copy(carbsRange = it)) }
     }
 }
 

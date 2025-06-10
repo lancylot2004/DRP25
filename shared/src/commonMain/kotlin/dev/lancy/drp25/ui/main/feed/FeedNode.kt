@@ -22,7 +22,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -92,8 +91,6 @@ class FeedNode(
             onDispose { }
         }
 
-        LaunchedEffect(filterValues) { scope.updateRecipes(filterValues) { recipes = it } }
-
         Box(Modifier.fillMaxSize()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -154,10 +151,15 @@ class FeedNode(
                         .align(Alignment.BottomCenter),
                     shape = Shape.RoundedLarge,
                     sheetState = sheetState,
-                    onDismissRequest = { scope.launch { sheetState.hide() } },
+                    onDismissRequest = {
+                        scope.launch {
+                            sheetState.hide()
+                            scope.updateRecipes(filterValues) { recipes = it }
+                        }
+                    },
                     dragHandle = {},
                 ) {
-                    Column { FilterContent { filterValues = it } }
+                    Column { FilterContent(filterValues) { filterValues = it } }
                 }
             }
         }
