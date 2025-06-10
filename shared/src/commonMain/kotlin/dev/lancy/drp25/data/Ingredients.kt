@@ -9,6 +9,8 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 
+val PREFERREDSYSTEM = MeasurementSystem.METRIC
+
 // INGREDIENTS
 @Serializable
 enum class Ingredients(
@@ -60,6 +62,10 @@ data class Ingredient(
     val quantity: Double,
     val unit: IngredientUnit,
 ) : Parcelable
+
+enum class MeasurementSystem { METRIC, IMPERIAL }
+
+private fun getMeasurementSystem(unit: IngredientUnit): MeasurementSystem = TODO()
 
 @Serializable(with = IngredientUnitSerialiser::class)
 @Parcelize
@@ -152,6 +158,41 @@ fun Double.convert(from: IngredientUnit, to: IngredientUnit): Double =
 
 fun Int.convert(from: IngredientUnit, to: IngredientUnit): Double =
     toDouble().convert(from, to)
+
+//fun oldFormatIngredientDisplay(ingredient: Ingredient): String {
+//    val currentSystem = getMeasurementSystem(ingredient.unit)
+//    val displayUnit = if (currentSystem == PREFERREDSYSTEM) {
+//        ingredient.unit
+//    } else {
+//        preferredUnitFor(PREFERREDSYSTEM, ingredient.unit)
+//    }
+//    val displayQuantity = if (ingredient.unit == displayUnit) {
+//        ingredient.quantity
+//    } else {
+//        // UnitConverter.convert(ingredient.quantity, ingredient.unit, displayUnit)
+//    }
+//    // val quantityFormatted = formatDouble(displayQuantity)
+//    //val unitLabel = displayUnit.shortName
+//
+//    //return if (unitLabel.isNotEmpty()) {
+//    //    "$quantityFormatted $unitLabel ${ingredient.name}"
+//    } else {
+//        "$quantityFormatted ${ingredient.name}"
+//    }
+//}
+
+//private fun preferredUnitFor(system: MeasurementSystem, fromUnit: Unit): Unit = when (system) {
+//    MeasurementSystem.METRIC -> when (fromUnit) {
+//        Unit.OUNCE -> Unit.GRAM
+//        Unit.POUND -> Unit.KILOGRAM
+//        else -> fromUnit
+//    }
+//    MeasurementSystem.IMPERIAL -> when (fromUnit) {
+//        Unit.GRAM -> Unit.OUNCE
+//        Unit.KILOGRAM -> Unit.POUND
+//        else -> fromUnit
+//    }
+//}
 
 fun formatIngredientDisplay(ingredient: Ingredient): String = buildString {
     append(formatDouble(ingredient.quantity))
