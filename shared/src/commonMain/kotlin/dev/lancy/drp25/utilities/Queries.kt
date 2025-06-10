@@ -1,6 +1,8 @@
 package dev.lancy.drp25.utilities
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import dev.lancy.drp25.data.Cuisine
 import dev.lancy.drp25.data.Diet
 import dev.lancy.drp25.data.MealType
@@ -10,6 +12,7 @@ import dev.lancy.drp25.data.client
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator.*
 import io.github.jan.supabase.postgrest.query.filter.PostgrestFilterBuilder
+import kotlinx.serialization.Serializable
 
 // Global variable to store all recipes
 val allRecipes = mutableStateOf(listOf<Recipe>())
@@ -23,6 +26,31 @@ suspend fun fetchAllRecipes() {
     }.onFailure {
         println("Failed to fetch recipes: ${it.message}")
     }
+}
+
+@Serializable
+data class RecipeID(val recipe_id: Int) {}
+
+suspend fun fetchSavedRecipes(): List<String> {
+    var savedRecipeIds: List<String> = listOf()
+    runCatching {
+        val result = client.from("saved_recipes").select().decodeList<RecipeID>()
+        println(result)
+        result
+    }.onSuccess {
+        savedRecipeIds = it.map { it.recipe_id.toString() }
+        println("Fetched ${it.size} saved recipes!")
+    }.onFailure {
+        println("Failed to fetch saved recipes.")
+    }
+    return savedRecipeIds
+}
+
+@Composable
+fun getRecipe(recipeId: String): Recipe {
+    return remember(recipeId) {
+        allRecipes.value.find { it.id == recipeId }
+    } ?: throw IllegalStateException("Recipe with id $recipeId not found")
 }
 
 // Recipe filter functions for Supabase-kt

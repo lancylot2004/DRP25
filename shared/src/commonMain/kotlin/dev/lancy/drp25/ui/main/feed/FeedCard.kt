@@ -36,7 +36,6 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
-import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -47,7 +46,7 @@ import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.allRecipes
+import dev.lancy.drp25.utilities.getRecipe
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
@@ -55,7 +54,7 @@ import kotlinx.coroutines.launch
 class FeedCard(
     nodeContext: NodeContext,
     parent: FeedNode,
-    private val recipeID: String,
+    private val recipeId: String,
 ) : LeafNode(nodeContext),
     NavConsumer<FeedTarget, FeedNode> by NavConsumerImpl(parent){
     @Composable
@@ -63,9 +62,7 @@ class FeedCard(
         val hazeState = remember { HazeState() }
         val scope = rememberCoroutineScope()
 
-        val recipe = remember(recipeID) {
-            allRecipes.value.find { it.id == recipeID }
-        } ?: throw IllegalStateException("Recipe with id $recipeID not found")
+        val recipe = getRecipe(recipeId)
 
         Box(
             modifier = modifier

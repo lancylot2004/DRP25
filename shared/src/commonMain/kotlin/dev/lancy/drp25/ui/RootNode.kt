@@ -1,7 +1,7 @@
 package dev.lancy.drp25.ui
 
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.backstack.BackStackModel
@@ -9,14 +9,12 @@ import com.bumble.appyx.components.backstack.operation.pop
 import com.bumble.appyx.components.backstack.operation.push
 import com.bumble.appyx.components.backstack.operation.replace
 import com.bumble.appyx.components.backstack.ui.fader.BackStackFader
-import com.bumble.appyx.components.backstack.ui.slider.BackStackSlider
 import com.bumble.appyx.navigation.composable.AppyxNavigationContainer
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import com.bumble.appyx.utils.multiplatform.RawValue
-import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.loggedOut.LoggedOutNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
@@ -69,12 +67,14 @@ class RootNode(
 
     @Composable
     override fun Content(modifier: Modifier) {
+        val scope = rememberCoroutineScope()
+
         AppyxNavigationContainer(
             appyxComponent = backStack,
             modifier = modifier,
         )
 
-        this.lifecycleScope.launch { fetchAllRecipes() }
+        scope.launch { fetchAllRecipes() }
     }
 
     override suspend fun <C : NavTarget> navigate(target: RootTarget): Node<C> =
