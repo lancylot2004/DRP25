@@ -15,5 +15,6 @@ struct ContentView: View {
         ComposeView()
             // Compose has own keyboard handler.
             .ignoresSafeArea(.keyboard)
+            .ignoresSafeArea(edges: .bottom)
     }
 }

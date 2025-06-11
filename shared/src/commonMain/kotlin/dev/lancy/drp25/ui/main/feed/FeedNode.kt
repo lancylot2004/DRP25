@@ -23,6 +23,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,7 @@ import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import dev.lancy.drp25.utilities.fetchRecipes
+import dev.lancy.drp25.utilities.rememberPersisted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -84,7 +86,9 @@ class FeedNode(
         val scope = rememberCoroutineScope()
 
         var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
-        var filterValues by remember { mutableStateOf(FilterValues()) }
+
+        val filterPersistence = rememberPersisted("filters") { FilterValues() }
+        val filterValues by filterPersistence.state.collectAsState()
 
         DisposableEffect(this.lifecycleScope) {
             scope.updateRecipes(filterValues) { recipes = it }
@@ -154,12 +158,14 @@ class FeedNode(
                     onDismissRequest = {
                         scope.launch {
                             sheetState.hide()
-                            scope.updateRecipes(filterValues) { recipes = it }
+                            scope.updateRecipes(filterPersistence.state.value) { recipes = it }
                         }
                     },
                     dragHandle = {},
                 ) {
-                    Column { FilterContent(filterValues) { filterValues = it } }
+                    Column {
+                        FilterContent(filterPersistence)
+                    }
                 }
             }
         }
