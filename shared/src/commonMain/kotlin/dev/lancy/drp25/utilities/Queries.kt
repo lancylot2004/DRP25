@@ -46,6 +46,10 @@ suspend fun fetchSavedRecipes(): List<String> {
     return savedRecipeIds
 }
 
+suspend fun isInSavedRecipes(recipeID: String): Boolean {
+    return fetchSavedRecipes().contains(recipeID)
+}
+
 @Composable
 fun getRecipe(recipeId: String): Recipe {
     return remember(recipeId) {

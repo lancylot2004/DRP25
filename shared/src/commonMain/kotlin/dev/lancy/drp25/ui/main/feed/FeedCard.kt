@@ -1,5 +1,6 @@
 package dev.lancy.drp25.ui.main.feed
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
@@ -14,14 +15,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -29,6 +36,7 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Heart
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Users
 import com.composables.icons.lucide.Zap
@@ -36,6 +44,7 @@ import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
+import dev.lancy.drp25.data.client
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -43,10 +52,14 @@ import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
 import dev.lancy.drp25.ui.main.feed.FeedNode.FeedTarget
 import dev.lancy.drp25.utilities.ColourScheme
+import dev.lancy.drp25.utilities.Const
+import dev.lancy.drp25.utilities.RecipeID
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import dev.lancy.drp25.utilities.getRecipe
+import dev.lancy.drp25.utilities.isInSavedRecipes
+import io.github.jan.supabase.postgrest.from
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
@@ -89,6 +102,58 @@ class FeedCard(
                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
             )
 
+            var isInSavedRecipe = mutableStateOf(false)
+            scope.launch {
+                isInSavedRecipe.value = isInSavedRecipes(recipe.id)
+            }
+
+            Column(
+                modifier = Modifier
+                    .hazeChild(
+                        state = hazeState,
+                        shape = Shape.RoundedMedium,
+                        style = Const.HazeStyle
+                    )
+                    .align(Alignment.CenterEnd)
+            ) {
+                IconButton(
+                    onClick = {
+                        scope.launch {
+                            runCatching {
+                                if (isInSavedRecipe.value) {
+                                    client.from("saved_recipes").delete {
+                                        filter {
+                                            eq("recipe_id", recipe.id)
+                                        }
+                                    }
+                                } else {
+                                    client.from("saved_recipes").insert(RecipeID(recipe.id.toInt()))
+                                }
+                            }.onSuccess {
+                                isInSavedRecipe.value = !isInSavedRecipe.value
+                                println("${if (isInSavedRecipe.value) "Saved" else "Deleted"} recipe!")
+                            }.onFailure { throwable ->
+                                println("Error: ${throwable.message}")
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .shadow(
+                            elevation = Size.IconMedium,
+                            ambientColor = Color.Black,
+                            spotColor = Color.Black
+                        )
+                ) {
+                    AnimatedContent(isInSavedRecipe) {
+                        Icon(
+                            imageVector = Lucide.Heart,
+                            contentDescription = null,
+                            tint = if (it.value) Color(0xFFFF6767) else Color.White,
+                            modifier = Modifier.size(Size.IconMedium)
+                        )
+                    }
+                }
+            }
             // Content
             Column(
                 modifier = Modifier

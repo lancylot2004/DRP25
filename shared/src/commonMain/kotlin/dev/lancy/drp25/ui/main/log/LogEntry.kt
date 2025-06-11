@@ -3,10 +3,12 @@ package dev.lancy.drp25.ui.main.log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Star
 import com.composables.icons.lucide.Users
@@ -35,6 +39,7 @@ fun logEntry(recipeId: String) {
     Row(
         modifier = Modifier
             .padding(Size.Padding)
+            .clip(Shape.RoundedMedium)
             .clickable(role = Role.Button) {}
     ) {
         KamelImage(
@@ -49,20 +54,23 @@ fun logEntry(recipeId: String) {
         )
 
         Column(
-            modifier = Modifier.align(Alignment.CenterVertically)
+            modifier = Modifier.align(Alignment.CenterVertically),
         ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().width(IntrinsicSize.Max)
             ) {
                 Text(
                     text = recipe.name,
                     style = Typography.titleSmall,
                     color = Color.White,
-                    modifier = Modifier.align(Alignment.CenterVertically)
+                    modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(Size.Padding)
+                    horizontalArrangement = Arrangement.spacedBy(Size.CornerSmall),
+                    modifier = Modifier.padding(end = Size.Padding)
                 ) {
                     Icon(
                         imageVector = Lucide.Star,
@@ -86,6 +94,26 @@ fun logEntry(recipeId: String) {
                     IconText(Lucide.Zap, "Calories", "$it kcal")
                 }
                 IconText(Lucide.Users, "Servings", "${recipe.portions} portions")
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Size.CornerSmall),
+                modifier = Modifier.padding(end = Size.Padding)
+            ) {
+                Icon(
+                    imageVector = Lucide.Carrot,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                )
+                Text(
+                    text = recipe.keyIngredients.joinToString(", "),
+                    style = Typography.bodyMedium,
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
