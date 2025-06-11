@@ -159,7 +159,11 @@ class FeedNode(
                     },
                     dragHandle = {},
                 ) {
-                    Column { FilterContent(filterValues) { filterValues = it } }
+                    Column {
+                        FilterContent(filterValues) {
+                            filterValues = it
+                        }
+                    }
                 }
             }
         }

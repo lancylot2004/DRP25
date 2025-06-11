@@ -56,13 +56,6 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 # https://github.com/Kamel-Media/Kamel
 kamel-image = { module = "media.kamel:kamel-image-default", version.ref = "kamel" }
 
-# https://developer.android.com/training/camerax | Apache-2.0
-androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "cameraCore" }
-androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "cameraCore" }
-androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "cameraCore" }
-androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "cameraCore" }
-mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "mlkitBarcode" }
-
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }

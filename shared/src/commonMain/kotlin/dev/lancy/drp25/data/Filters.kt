@@ -1,8 +1,5 @@
 package dev.lancy.drp25.data
 
-import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.minutes
-
 // Filter data class
 data class FilterValues(
     val timeRange: ClosedFloatingPointRange<Float> = FilterRanges.TIME_DEFAULT,
@@ -25,11 +22,6 @@ object FilterRanges {
     val TIME_RANGE = 5f..180f
     val TIME_DEFAULT = 15f..60f
 
-    // Rating from 0.0-5.0 stars with 0.1 precision
-    val RATING_RANGE = 0.0f..5.0f
-    val RATING_STEP = 0.1f
-    val RATING_STEPS = ((RATING_RANGE.endInclusive - RATING_RANGE.start) / RATING_STEP).toInt() - 1
-
     // Nutrition ranges - consolidated defaults
     val CALORIE_RANGE = 50f..1500f
     val CALORIE_DEFAULT = 200f..800f
@@ -42,27 +34,4 @@ object FilterRanges {
 
     val CARBS_RANGE = 0f..150f
     val CARBS_DEFAULT = 20f..80f
-}
-
-// Filter formatters
-object FilterFormatters {
-    fun formatTime(minutes: Float): String = when {
-        minutes < 60f -> "${minutes.toInt()} min"
-        minutes == 60f -> "1 hour"
-        minutes < 120f -> "1h ${(minutes - 60).toInt()}min"
-        else -> "${(minutes / 60).toInt()}h ${(minutes % 60).toInt()}m"
-    }
-
-    fun formatRating(rating: Float): String {
-        if (rating == 0f) return "Any rating"
-        val rounded = (rating * 10).roundToInt() / 10f
-        val integerPart = rounded.toInt()
-        val fractionalDigit = ((rounded * 10).roundToInt() % 10)
-        val oneDecimal = "$integerPart.$fractionalDigit"
-
-        return when {
-            rounded == 5.0f -> "5.0 stars only"
-            else -> "$oneDecimal+ stars"
-        }
-    }
 }

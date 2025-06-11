@@ -54,15 +54,6 @@ kotlin {
 
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
             implementation(libs.ktor.client.okhttp)
-
-            // Camera X | https://developer.android.com/training/camerax | Apache-2.0
-            implementation(libs.androidx.camera.core)
-            implementation(libs.androidx.camera.camera2)
-            implementation(libs.androidx.camera.lifecycle)
-            implementation(libs.androidx.camera.view)
-
-            // ML Kit barcode-scanning
-            implementation(libs.mlkit.barcode.scanning)
         }
 
         commonMain.dependencies {
