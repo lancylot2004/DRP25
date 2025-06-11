@@ -101,6 +101,10 @@ kotlin {
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.kt)
             implementation(libs.storage.kt)
+
+            // Multiplatform Settings | https://github.com/russhwolf/multiplatform-settings | Apache-2.0
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
         }
     }
 }

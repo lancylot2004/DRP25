@@ -1,7 +1,12 @@
 package dev.lancy.drp25.data
 
+import dev.lancy.drp25.utilities.ClosedFloatRangeSerializer
+import kotlinx.serialization.Serializable
+
 // Filter data class
+@Serializable
 data class FilterValues(
+    @Serializable(ClosedFloatRangeSerializer::class)
     val timeRange: ClosedFloatingPointRange<Float> = FilterRanges.TIME_DEFAULT,
     val rating: Float = 3.0f,
     val selectedMealTypes: Set<MealType> = emptySet(),
@@ -10,9 +15,13 @@ data class FilterValues(
     val includedIngredients: Set<Ingredients> = emptySet(),
     val avoidedIngredients: Set<Ingredients> = emptySet(),
     val useMyEquipmentOnly: Boolean = true,
+    @Serializable(ClosedFloatRangeSerializer::class)
     val calorieRange: ClosedFloatingPointRange<Float> = FilterRanges.CALORIE_DEFAULT,
+    @Serializable(ClosedFloatRangeSerializer::class)
     val proteinRange: ClosedFloatingPointRange<Float> = FilterRanges.PROTEIN_DEFAULT,
+    @Serializable(ClosedFloatRangeSerializer::class)
     val fatRange: ClosedFloatingPointRange<Float> = FilterRanges.FAT_DEFAULT,
+    @Serializable(ClosedFloatRangeSerializer::class)
     val carbsRange: ClosedFloatingPointRange<Float> = FilterRanges.CARBS_DEFAULT,
 )
 

@@ -21,11 +21,7 @@ import dev.lancy.drp25.utilities.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ColumnScope.FilterContent(filterValues: FilterValues, updateCallback: (FilterValues) -> Unit) {
-    LaunchedEffect(filterValues) {
-        updateCallback(filterValues)
-    }
-
+fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues>) {
     Text(
         "Filters",
         style = Typography.titleMedium,
@@ -35,6 +31,8 @@ fun ColumnScope.FilterContent(filterValues: FilterValues, updateCallback: (Filte
             .align(Alignment.CenterHorizontally),
         textAlign = TextAlign.Center,
     )
+
+    val filterValues by filterPersistence.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -48,35 +46,35 @@ fun ColumnScope.FilterContent(filterValues: FilterValues, updateCallback: (Filte
             value = filterValues.timeRange,
             range = FilterRanges.TIME_RANGE,
             format = { formatRange(it, FilterRanges.TIME_RANGE, "min", "any duration") },
-        ) { updateCallback(filterValues.copy(timeRange = it)) }
+        ) { filterPersistence.update { copy(timeRange = it) } }
 
         StarRatingSection(
             title = "Minimum rating",
             rating = filterValues.rating,
-        ) { updateCallback(filterValues.copy(rating = it)) }
+        ) { filterPersistence.update { copy(rating = it) } }
 
         ChipSelectionSection(
             "Type of meal",
             MealType.entries,
             filterValues.selectedMealTypes,
-        ) { updateCallback(filterValues.copy(selectedMealTypes = it)) }
+        ) { filterPersistence.update { copy(selectedMealTypes = it) } }
 
         ChipSelectionSection(
             "Cuisine",
             Cuisine.entries,
             filterValues.selectedCuisines,
-        ) { updateCallback(filterValues.copy(selectedCuisines = it)) }
+        ) { filterPersistence.update { copy(selectedCuisines = it) } }
 
         ChipSelectionSection(
             "Dietary needs",
             Diet.entries,
             filterValues.selectedDiets,
-        ) { updateCallback(filterValues.copy(selectedDiets = it)) }
+        ) { filterPersistence.update { copy(selectedDiets = it) } }
 
         BinarySection(
             title = "Use only my equipment",
             value = filterValues.useMyEquipmentOnly,
-            onValueChange = { updateCallback(filterValues.copy(useMyEquipmentOnly = it)) },
+            onValueChange = { filterPersistence.update { copy(useMyEquipmentOnly = it) } },
         )
 
         SliderSection(
@@ -84,28 +82,28 @@ fun ColumnScope.FilterContent(filterValues: FilterValues, updateCallback: (Filte
             filterValues.calorieRange,
             FilterRanges.CALORIE_RANGE,
             { formatRange(it, FilterRanges.CALORIE_RANGE, "cal", "any calories") },
-        ) { updateCallback(filterValues.copy(calorieRange = it)) }
+        ) { filterPersistence.update { copy(calorieRange = it) } }
 
         SliderSection(
             "Protein",
             filterValues.proteinRange,
             FilterRanges.PROTEIN_RANGE,
             { formatRange(it, FilterRanges.PROTEIN_RANGE, "g", "any protein content") },
-        ) { updateCallback(filterValues.copy(proteinRange = it)) }
+        ) { filterPersistence.update { copy(proteinRange = it) } }
 
         SliderSection(
             "Fat",
             filterValues.fatRange,
             FilterRanges.FAT_RANGE,
             { formatRange(it, FilterRanges.FAT_RANGE, "g", "any fat content") },
-        ) { updateCallback(filterValues.copy(fatRange = it)) }
+        ) { filterPersistence.update { copy(fatRange = it) } }
 
         SliderSection(
             "Carbohydrates",
             filterValues.carbsRange,
             FilterRanges.CARBS_RANGE,
             { formatRange(it, FilterRanges.CARBS_RANGE, "g", "any carb content") },
-        ) { updateCallback(filterValues.copy(carbsRange = it)) }
+        ) { filterPersistence.update { copy(carbsRange = it) } }
     }
 }
 
