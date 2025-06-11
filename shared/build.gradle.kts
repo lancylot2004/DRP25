@@ -11,7 +11,6 @@ plugins {
     alias(libs.plugins.kotlin.parcelize)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.detekt)
-    alias(libs.plugins.realm)
 }
 
 detekt {
@@ -42,6 +41,11 @@ kotlin {
         iosMain.dependencies {
             // [Common] Async Client | https://github.com/ktorio/ktor | Apache-2.0
             implementation(libs.ktor.client.darwin)
+
+            // Add these for Compose UI on iOS
+            implementation(compose.ui)
+            implementation(compose.foundation)
+            implementation(compose.runtime)
         }
 
         androidMain.dependencies {
@@ -93,34 +97,26 @@ kotlin {
             // Async Media Loading & Caching | https://github.com/Kamel-Media/Kamel | Apache-2.0
             implementation(libs.kamel.image)
 
-            // Realm Database | https://github.com/realm/realm-kotlin | Apache-2.0
-            implementation(libs.realm.base)
-
             // Supabase | https://github.com/supabase/supabase-kt | Apache-2.0
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.kt)
             implementation(libs.storage.kt)
+
+            // Multiplatform Settings | https://github.com/russhwolf/multiplatform-settings | Apache-2.0
+            implementation(libs.multiplatform.settings)
+            implementation(libs.multiplatform.settings.serialization)
         }
     }
 }
 
 android {
     namespace = "dev.lancy.drp25"
-    compileSdk =
-        libs.versions.android.compileSdk
-            .get()
-            .toInt()
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "dev.lancy.drp25"
-        minSdk =
-            libs.versions.android.minSdk
-                .get()
-                .toInt()
-        targetSdk =
-            libs.versions.android.targetSdk
-                .get()
-                .toInt()
+        minSdk = 24
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
     }

@@ -126,7 +126,7 @@ class MainNode(
         )
 
         companion object : StaticNavTarget {
-            override val default: MainTarget = Me
+            override val default: MainTarget = Feed
 
             override val entries: List<MainTarget> = listOf(Feed, Pantry, Log, Me)
         }
@@ -158,7 +158,7 @@ class MainNode(
                     .background(Color.Transparent)
                     // Sneaky fix for glitter at bottom of screen.
                     .offset(y = 2.dp)
-                    .hazeChild(hazeState),
+                    .hazeChild(hazeState, style = Const.HazeStyle),
             ) {
                 MainTarget.entries.forEach {
                     val index = MainTarget.entries.indexOf(it)

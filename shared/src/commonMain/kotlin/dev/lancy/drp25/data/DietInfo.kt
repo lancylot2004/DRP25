@@ -70,6 +70,12 @@ enum class Utensil(val displayName: String) {
     PASTRY_BAG("Pastry Bag"),
     MUFFIN_TIN("Muffin Tin"),
     BAKING_DISH("Baking Dish"),
+    POT("Pot"),
+    PAN("Pan"),
+    SPATULA("Spatula"),
+    GLASS("Glass"),
+    TOASTER("Toaster"),
+    BOWL("Bowl"),
     FOIL("Foil");
 
     override fun toString() = displayName

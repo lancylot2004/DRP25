@@ -24,23 +24,21 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Star
 import com.composables.icons.lucide.Users
 import com.composables.icons.lucide.Zap
+import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.getRecipe
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 
 @Composable
-fun logEntry(recipeId: String) {
-    val recipe = getRecipe(recipeId)
-
+fun logEntry(recipe: Recipe) {
     Row(
         modifier = Modifier
             .padding(Size.Padding)
             .clip(Shape.RoundedMedium)
-            .clickable(role = Role.Button) {}
+            .clickable(role = Role.Button) {},
     ) {
         KamelImage(
             resource = { asyncPainterResource(recipe.cardImage) },
@@ -58,7 +56,7 @@ fun logEntry(recipeId: String) {
         ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth().width(IntrinsicSize.Max)
+                modifier = Modifier.fillMaxWidth().width(IntrinsicSize.Max),
             ) {
                 Text(
                     text = recipe.name,
@@ -66,29 +64,29 @@ fun logEntry(recipeId: String) {
                     color = Color.White,
                     modifier = Modifier.weight(1f).align(Alignment.CenterVertically),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Size.CornerSmall),
-                    modifier = Modifier.padding(end = Size.Padding)
+                    modifier = Modifier.padding(end = Size.Padding),
                 ) {
                     Icon(
                         imageVector = Lucide.Star,
                         contentDescription = null,
                         tint = Color(0xFFFFD700),
                         modifier = Modifier
-                            .align(Alignment.CenterVertically)
+                            .align(Alignment.CenterVertically),
                     )
                     Text(
                         text = "${recipe.rating} / 5",
                         style = Typography.bodyMedium,
                         color = Color.White,
-                        modifier = Modifier.align(Alignment.CenterVertically)
+                        modifier = Modifier.align(Alignment.CenterVertically),
                     )
                 }
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Size.Padding)
+                horizontalArrangement = Arrangement.spacedBy(Size.Padding),
             ) {
                 recipe.calories?.let {
                     IconText(Lucide.Zap, "Calories", "$it kcal")
@@ -97,14 +95,14 @@ fun logEntry(recipeId: String) {
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Size.CornerSmall),
-                modifier = Modifier.padding(end = Size.Padding)
+                modifier = Modifier.padding(end = Size.Padding),
             ) {
                 Icon(
                     imageVector = Lucide.Carrot,
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier
-                        .align(Alignment.CenterVertically)
+                        .align(Alignment.CenterVertically),
                 )
                 Text(
                     text = recipe.keyIngredients.joinToString(", "),
@@ -112,7 +110,7 @@ fun logEntry(recipeId: String) {
                     color = Color.White,
                     modifier = Modifier.align(Alignment.CenterVertically),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

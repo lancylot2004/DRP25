@@ -1,7 +1,6 @@
 package dev.lancy.drp25.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.backstack.BackStackModel
@@ -14,15 +13,12 @@ import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.Node
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
-import com.bumble.appyx.utils.multiplatform.RawValue
 import dev.lancy.drp25.ui.loggedOut.LoggedOutNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
 import dev.lancy.drp25.utilities.currentTarget
-import dev.lancy.drp25.utilities.fetchAllRecipes
-import kotlinx.coroutines.launch
 
 class RootNode(
     nodeContext: NodeContext,
@@ -53,7 +49,9 @@ class RootNode(
         /**
          * [Recipe] is an overlay that appears above the [Main] page.
          */
-        data class Recipe(val id: @RawValue String) : RootTarget()
+        data class Recipe(
+            val recipe: dev.lancy.drp25.data.Recipe,
+        ) : RootTarget()
     }
 
     override fun buildChildNode(
@@ -62,19 +60,15 @@ class RootNode(
     ): Node<*> = when (navTarget) {
         RootTarget.Main -> MainNode(nodeContext, this)
         RootTarget.LoggedOut -> LoggedOutNode(nodeContext)
-        is RootTarget.Recipe -> RecipeNode(nodeContext, navTarget.id, this) { backStack.pop() }
+        is RootTarget.Recipe -> RecipeNode(nodeContext, navTarget.recipe, this) { backStack.pop() }
     }
 
     @Composable
     override fun Content(modifier: Modifier) {
-        val scope = rememberCoroutineScope()
-
         AppyxNavigationContainer(
             appyxComponent = backStack,
             modifier = modifier,
         )
-
-        scope.launch { fetchAllRecipes() }
     }
 
     override suspend fun <C : NavTarget> navigate(target: RootTarget): Node<C> =
