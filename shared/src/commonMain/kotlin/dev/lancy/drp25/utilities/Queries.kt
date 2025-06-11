@@ -69,7 +69,7 @@ suspend fun isSavedRecipe(recipe: Recipe): Boolean = runCatching {
 )
 
 @Serializable
-value class RecipeID(
+data class RecipeID(
     val recipe_id: Int,
 )
 
