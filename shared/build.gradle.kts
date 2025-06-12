@@ -1,7 +1,20 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.konan.properties.loadProperties
+import java.util.Properties
+import java.io.FileInputStream
 
-val properties = loadProperties("local.properties")
+val properties = Properties()
+try {
+    val file = File("local.properties")
+    FileInputStream(file).use {fis ->
+        properties.load(fis)
+        properties.forEach {key, value -> println("   $key = $value")}
+    }
+} catch (e: Exception) {
+    throw e
+}
+
+//val properties = loadProperties("local.properties")
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -148,6 +161,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 }
+
+compose.resources {
+    generateResClass = always
+    packageOfResClass = "dev.lancy.drp25.shared.resources"
+}
+
 
 dependencies {
     debugImplementation(compose.uiTooling)
