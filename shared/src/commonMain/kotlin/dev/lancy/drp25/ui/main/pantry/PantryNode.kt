@@ -38,7 +38,6 @@ fun PantryScreen(modifier: Modifier = Modifier) {
     Scaffold(
         modifier = modifier.fillMaxSize(), // Ensure Scaffold fills the whole screen
         bottomBar = {
-            // This Row contains the floating toolbars at the bottom
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -62,12 +61,9 @@ fun PantryScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
-    ) { innerPadding ->
-        // Main screen content or Utensils overlay
+    ) {
         if (showUtensilsScreen) {
-            UtensilsScreen(
-                modifier = Modifier.fillMaxSize()
-            )
+            UtensilsScreen(modifier = Modifier.fillMaxSize())
         } else {
             IngredientsNode(
                 selectedTabIndex = selectedTabIndex,

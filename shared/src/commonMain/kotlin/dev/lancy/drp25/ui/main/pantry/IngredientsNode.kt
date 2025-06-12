@@ -1,17 +1,34 @@
+// File: IngredientsNode.kt
 package dev.lancy.drp25.ui.main.pantry
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -22,53 +39,136 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Cookie
+import com.composables.icons.lucide.Utensils
 import dev.lancy.drp25.data.IngredientItem
 import dev.lancy.drp25.data.IngredientLocation
+import dev.lancy.drp25.data.IngredientType
 import dev.lancy.drp25.data.formatQuantity
-import dev.lancy.drp25.utilities.IngredientIcon
 import dev.lancy.drp25.utilities.IngredientIconView
-
+import kotlinx.coroutines.launch
 
 @Composable
 fun IngredientsNode(
     selectedTabIndex: Int,
-    allIngredients: SnapshotStateList<dev.lancy.drp25.data.IngredientItem>,
+    allIngredients: SnapshotStateList<IngredientItem>,
     onQuantityChange: (IngredientItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val filteredIngredients = remember(selectedTabIndex, allIngredients) {
-        when (selectedTabIndex) {
-            0 -> allIngredients.filter { it.location == IngredientLocation.Fridge }
-            1 -> allIngredients.filter { it.location == IngredientLocation.Freezer }
-            2 -> allIngredients
-            else -> allIngredients
-        }.sortedBy { it.name }
+    val filteredIngredients = when (selectedTabIndex) {
+        0 -> allIngredients.filter { it.location == IngredientLocation.Fridge }
+        1 -> allIngredients.filter { it.location == IngredientLocation.Freezer }
+        else -> allIngredients.toList()
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            top = 16.dp,
-            start = 16.dp,
-            end = 16.dp,
-            bottom = 8.dp + 56.dp + 16.dp + 64.dp
-        )
-    ) {
-        itemsIndexed(filteredIngredients) { index, ingredient ->
-            IngredientRow(
-                ingredient = ingredient,
-                onQuantityChange = { newQuantity ->
-                    val updatedIngredient = ingredient.copy(quantity = newQuantity)
-                    onQuantityChange(updatedIngredient)
-                }
-            )
+    val groupedByType = filteredIngredients
+        .groupBy { it.type }
+        .entries
+        .sortedBy { it.key.order }
 
-            if (index < filteredIngredients.size - 1) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                    thickness = 1.dp
+    val headerPositions = remember(filteredIngredients) {
+        mutableListOf<Pair<IngredientType, Int>>().apply {
+            var index = 0
+            groupedByType.forEach { (type, items) ->
+                add(type to index)
+                index += 1 + items.size
+            }
+        }
+    }
+
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(selectedTabIndex) {
+        listState.animateScrollToItem(0)
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Lucide.Cookie,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
                 )
+                Text(
+                    text = "Pantry",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+
+        // Category Buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            headerPositions.forEach { (type, position) ->
+                TextButton(onClick = {
+                    coroutineScope.launch { listState.animateScrollToItem(position) }
+                }) {
+                    Text(text = type.displayName)
+                }
+            }
+        }
+
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(0.dp, 0.dp, 0.dp, 164.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            groupedByType.forEach { (type, ingredients) ->
+                if (ingredients.isNotEmpty()) {
+                    item {
+                        Surface(
+                            tonalElevation = 2.dp,
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 6.dp, horizontal = 12.dp)
+                        ) {
+                            Text(
+                                text = type.displayName,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 20.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+                            )
+                        }
+                    }
+                    itemsIndexed(ingredients) { index, ingredient ->
+                        IngredientRow(
+                            ingredient = ingredient,
+                            onQuantityChange = { newQty ->
+                                onQuantityChange(ingredient.copy(quantity = newQty))
+                            }
+                        )
+                        if (index < ingredients.lastIndex) HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
+                }
             }
         }
     }
@@ -80,149 +180,78 @@ private fun IngredientRow(
     onQuantityChange: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var quantityText by remember(ingredient.quantity) {
-        mutableStateOf(
-            if (ingredient.quantity == 0.0) "0"
-            else ingredient.quantity.formatQuantity()
-        )
-    }
-
+    var quantityText by remember { mutableStateOf(ingredient.quantity.formatQuantity()) }
     var isEditing by remember { mutableStateOf(false) }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
-            .padding(start = 24.dp),
+            .padding(vertical = 8.dp)
+            .padding(start = 36.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(120.dp)
         ) {
-            IngredientIconView(
-                icon = ingredient.icon,
-                modifier = Modifier.size(56.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            IngredientIconView(icon = ingredient.icon, modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = ingredient.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontSize = 18.sp),
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 16.sp),
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth()
             )
         }
-
         Spacer(modifier = Modifier.weight(1f))
-
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.width(210.dp)
+            modifier = Modifier.width(180.dp)
         ) {
             IconButton(
                 onClick = {
-                    val newQuantity = maxOf(0.0, ingredient.quantity - ingredient.incrementAmount)
-                    onQuantityChange(newQuantity)
-                    quantityText = if (newQuantity == 0.0) "0"
-                    else newQuantity.formatQuantity()
-                },
-                enabled = ingredient.quantity > 0,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Remove,
-                    contentDescription = "Decrease quantity",
-                    tint = if (ingredient.quantity > 0) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(70.dp)
-            ) {
+                    val newQty = (ingredient.quantity - ingredient.incrementAmount).coerceAtLeast(0.0)
+                    onQuantityChange(newQty)
+                    quantityText = newQty.formatQuantity()
+                }, enabled = ingredient.quantity > 0, modifier = Modifier.size(40.dp)
+            ) { Icon(imageVector = Icons.Filled.Remove, contentDescription = null) }
+            Box(modifier = Modifier.width(60.dp)) {
                 if (isEditing) {
                     OutlinedTextField(
                         value = quantityText,
-                        onValueChange = { newText ->
-                            if (newText.isEmpty() || newText.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                quantityText = newText
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        onValueChange = { text -> if (text.matches(Regex("^\\d*\\.?\\d*$"))) quantityText = text },
                         singleLine = true,
-                        textStyle = MaterialTheme.typography.headlineSmall.copy(textAlign = TextAlign.Center),
-                        modifier = Modifier
-                            .width(70.dp)
-                            .height(56.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                        ),
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                val newQuantity = quantityText.toDoubleOrNull() ?: 0.0
-                                val finalQuantity = maxOf(0.0, newQuantity)
-                                onQuantityChange(finalQuantity)
-                                quantityText = if (finalQuantity == 0.0) "0"
-                                else finalQuantity.formatQuantity()
-                                isEditing = false
-                            }
-                        )
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        keyboardActions = KeyboardActions(onDone = {
+                            val newQty = quantityText.toDoubleOrNull() ?: 0.0
+                            onQuantityChange(newQty)
+                            quantityText = newQty.formatQuantity()
+                            isEditing = false
+                        }),
+                        //colors = TextFieldDefaults.outlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxSize()
                     )
-
                 } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                isEditing = true
-                            }
-                    ) {
-                        Text(
-                            text = quantityText,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            textAlign = TextAlign.Center
-                        )
-
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.outline,
-                            thickness = 1.dp
-                        )
-                    }
+                    Text(
+                        text = quantityText,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxSize().clickable { isEditing = true }
+                    )
                 }
             }
-
             IconButton(
                 onClick = {
-                    val newQuantity = ingredient.quantity + ingredient.incrementAmount
-                    onQuantityChange(newQuantity)
-                    quantityText = if (newQuantity % 1.0 == 0.0) newQuantity.toInt().toString()
-                    else newQuantity.formatQuantity()
-                },
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Increase quantity",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
+                    val newQty = ingredient.quantity + ingredient.incrementAmount
+                    onQuantityChange(newQty)
+                    quantityText = newQty.formatQuantity()
+                }, modifier = Modifier.size(40.dp)
+            ) { Icon(imageVector = Icons.Filled.Add, contentDescription = null) }
             Text(
                 text = ingredient.defaultUnit,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.width(44.dp)
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.width(36.dp)
             )
         }
     }
@@ -264,12 +293,8 @@ fun IngredientsToolbar(
                     text = {
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 )
