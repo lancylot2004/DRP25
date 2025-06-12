@@ -105,6 +105,9 @@ kotlin {
             // Multiplatform Settings | https://github.com/russhwolf/multiplatform-settings | Apache-2.0
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.serialization)
+
+            // Barcode Scanner | https://github.com/kalinjul/EasyQRScan | Apache-2.0
+            implementation(libs.scanner)
         }
     }
 }
