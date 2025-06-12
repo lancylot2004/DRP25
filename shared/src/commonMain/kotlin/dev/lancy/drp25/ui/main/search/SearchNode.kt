@@ -5,7 +5,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
@@ -41,6 +40,8 @@ import dev.lancy.drp25.utilities.Shape
 import kotlinx.coroutines.launch
 import dev.lancy.drp25.utilities.Typography
 import androidx.compose.runtime.saveable.rememberSaveable
+import dev.lancy.drp25.utilities.rememberPersisted
+import androidx.compose.runtime.collectAsState
 
 class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
@@ -52,9 +53,9 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
         var recipes by rememberSaveable { mutableStateOf<List<Recipe>>(emptyList()) }
         val queryState = rememberSaveable { mutableStateOf("") }
         var searchPerformed by rememberSaveable { mutableStateOf(false) }
-        var previousSearches by remember { mutableStateOf(listOf<String>()) }
 
-        // load previous searches from persistent storage
+        val previousSearchesPersistence = rememberPersisted("previous_searches") { emptyList<String>() }
+        val previousSearches by previousSearchesPersistence.state.collectAsState()
 
         Column(modifier = Modifier.fillMaxSize()) {
             SearchBar(
@@ -67,8 +68,9 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
                         recipes = emptyList()
                     } else {
                         if (!previousSearches.contains(query)) {
-                            previousSearches = listOf(query) + previousSearches.take(9)
-                            // load previous searches from persistent storage
+                            previousSearchesPersistence.update {
+                                listOf(query) + filterNot { it == query }.take(9)
+                            }
                         }
                         searchPerformed = true
                         scope.launch {
@@ -169,7 +171,9 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
                                 modifier = Modifier
                                     .size(Size.IconMedium)
                                     .clickable {
-                                        previousSearches = previousSearches.filter { it != search }
+                                        previousSearchesPersistence.update {
+                                            filter { it != search }
+                                        }
                                     }
                             )
                         }
