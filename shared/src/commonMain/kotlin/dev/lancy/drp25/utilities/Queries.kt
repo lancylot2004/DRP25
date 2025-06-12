@@ -12,6 +12,9 @@ import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 
+// Converts a set to a PostgREST-compatible IN list: (A,B,C)
+fun <T> Set<T>.toInList(): String = joinToString(prefix = "(", postfix = ")", separator = ",") { it.toString() }
+
 val client: SupabaseClient = createSupabaseClient(
     supabaseUrl = "https://zepduojefkyzoreleeoi.supabase.co",
     supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplcGR1b2plZmt5em9yZWxlZW9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NzA5OTMsImV4cCI6MjA2NDU0Njk5M30.bXfAH98IEQzoHm3pprtPtSnoB_fcGsF2MW3raoDHz3M",
@@ -23,6 +26,7 @@ val client: SupabaseClient = createSupabaseClient(
 
 val applyRecipeFilters: @PostgrestFilterDSL (SelectRequestBuilder.(filters: FilterValues?) -> Unit) = { filters ->
     if (filters != null) {
+        println(filters)
         filter {
             // Apply time range filter
             filter("cookingTime", FilterOperator.IN, filters.timeRange.toIntString())
@@ -37,6 +41,35 @@ val applyRecipeFilters: @PostgrestFilterDSL (SelectRequestBuilder.(filters: Filt
             filter("macros->protein", FilterOperator.IN, filters.proteinRange.toIntString())
             filter("macros->fat", FilterOperator.IN, filters.fatRange.toIntString())
             filter("macros->carbs", FilterOperator.IN, filters.carbsRange.toIntString())
+
+            // Meal Types
+            if (filters.selectedMealTypes.isNotEmpty()) {
+                filter(
+                    "mealType",
+                    FilterOperator.IN,
+                    filters.selectedMealTypes.map { it.name }.toSet().toInList()
+                )
+            }
+
+            // Cuisines
+            if (filters.selectedCuisines.isNotEmpty()) {
+                filter(
+                    "cuisine",
+                    FilterOperator.IN,
+                    filters.selectedCuisines.map { it.name }.toSet().toInList()
+                )
+            }
+
+            // Diets
+            if (filters.selectedDiets.isNotEmpty()) {
+                filter(
+                    "diet",
+                    FilterOperator.IN,
+                    filters.selectedDiets.map { it.name }.toSet().toInList()
+                )
+            }
+
+            // Ingredients are tricky...
         }
     }
 }
