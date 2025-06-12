@@ -1,4 +1,4 @@
-package dev.lancy.drp25.ui.main.pantry
+package dev.lancy.drp25.utilities
 
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable

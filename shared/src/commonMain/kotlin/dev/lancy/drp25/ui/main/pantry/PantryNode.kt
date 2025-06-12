@@ -6,10 +6,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.lancy.drp25.utilities.Size
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
+import dev.lancy.drp25.data.IngredientItem
+import dev.lancy.drp25.data.getDefaultIngredients
 import dev.lancy.drp25.ui.main.MainNode
 
 class PantryNode(
@@ -27,28 +30,31 @@ class PantryNode(
 fun PantryScreen(modifier: Modifier = Modifier) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     var showUtensilsScreen by remember { mutableStateOf(false) }
-    val tabTitles = listOf("Ingredients") // listOf("Fridge", "Freezer", "All")
+    val tabTitles = listOf("Fridge", "Freezer", "All")
+
+    // Centralized state for all ingredients
+    val allIngredients = remember { mutableStateListOf<IngredientItem>().apply { addAll(getDefaultIngredients()) } }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(), // Ensure Scaffold fills the whole screen
         bottomBar = {
-            // Arrange the ingredients toolbar and utensils button in one Row
+            // This Row contains the floating toolbars at the bottom
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .padding(bottom = Size.BarLarge),
+                    .padding(bottom = Size.BarLarge)
+                    .background(Color.Transparent),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Ingredients Toolbar Card
                 IngredientsToolbar(
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { selectedTabIndex = it },
+                    tabTitles = tabTitles,
                     modifier = Modifier.weight(1f)
                 )
 
-                // Utensils Toolbar Card - now toggles instead of just opening
                 UtensilsToolbar(
                     onUtensilsClick = {
                         showUtensilsScreen = !showUtensilsScreen
@@ -59,23 +65,21 @@ fun PantryScreen(modifier: Modifier = Modifier) {
     ) { innerPadding ->
         // Main screen content or Utensils overlay
         if (showUtensilsScreen) {
-            // Show utensils screen as overlay
             UtensilsScreen(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Main pantry content - now shows the actual ingredients
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
-            ) {
-                IngredientsNode(
-                    selectedTabIndex = selectedTabIndex,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            IngredientsNode(
+                selectedTabIndex = selectedTabIndex,
+                allIngredients = allIngredients,
+                onQuantityChange = { updatedIngredient ->
+                    val index = allIngredients.indexOfFirst { it.name == updatedIngredient.name }
+                    if (index != -1) {
+                        allIngredients[index] = updatedIngredient
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
