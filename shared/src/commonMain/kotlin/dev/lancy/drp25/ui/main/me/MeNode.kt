@@ -11,19 +11,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.RadioButton
+import androidx.compose.runtime.collectAsState
+import dev.lancy.drp25.utilities.rememberPersisted
+import dev.lancy.drp25.data.MeasurementSystem
 
 class MeNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext) {
 
     @Composable
     override fun Content(modifier: Modifier) {
-        var isMetric by remember { mutableStateOf(true) }
+        val systemPersistence = rememberPersisted("measurement_system") { MeasurementSystem.METRIC }
+        val isMetric = systemPersistence.state.collectAsState().value == MeasurementSystem.METRIC
 
         Column(
             modifier = Modifier
@@ -45,12 +45,12 @@ class MeNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext) 
             ) {
                 RadioButton(
                     selected = isMetric,
-                    onClick = { isMetric = true }
+                    onClick = { systemPersistence.update { MeasurementSystem.METRIC } }
                 )
                 Text("Metric")
                 RadioButton(
                     selected = !isMetric,
-                    onClick = { isMetric = false }
+                    onClick = { systemPersistence.update { MeasurementSystem.IMPERIAL } }
                 )
                 Text("Imperial")
             }

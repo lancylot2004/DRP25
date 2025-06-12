@@ -2,14 +2,19 @@ package dev.lancy.drp25.data
 
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
+import com.russhwolf.settings.ExperimentalSettingsApi
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import dev.lancy.drp25.utilities.settings
+import com.russhwolf.settings.serialization.decodeValueOrNull
 
-val PREFERREDSYSTEM = MeasurementSystem.METRIC
+@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
+fun getPreferredSystem(): MeasurementSystem =
+    settings.decodeValueOrNull<MeasurementSystem>("measurement_system") ?: MeasurementSystem.IMPERIAL
 
 // INGREDIENTS
 @Serializable
@@ -179,11 +184,12 @@ private fun preferredUnitFor(system: MeasurementSystem, fromUnit: IngredientUnit
 }
 
 fun formatIngredientDisplay(ingredient: Ingredient): String {
+    val preferredSystem = getPreferredSystem()
     val currentSystem = getMeasurementSystem(ingredient.unit)
-    val displayUnit = if (currentSystem == PREFERREDSYSTEM) {
+    val displayUnit = if (currentSystem == preferredSystem) {
         ingredient.unit
     } else {
-        preferredUnitFor(PREFERREDSYSTEM, ingredient.unit)
+        preferredUnitFor(preferredSystem, ingredient.unit)
     }
     val displayQuantity = if (ingredient.unit == displayUnit) {
         ingredient.quantity
