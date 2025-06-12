@@ -15,6 +15,7 @@ import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import dev.lancy.drp25.ui.loggedOut.LoggedOutNode
 import dev.lancy.drp25.ui.main.MainNode
+import dev.lancy.drp25.ui.settings.SettingsNode
 import dev.lancy.drp25.ui.overlay.recipe.RecipeNode
 import dev.lancy.drp25.ui.shared.NavProvider
 import dev.lancy.drp25.ui.shared.NavTarget
@@ -52,6 +53,11 @@ class RootNode(
         data class Recipe(
             val recipe: dev.lancy.drp25.data.Recipe,
         ) : RootTarget()
+
+        /**
+         * [Settings] contains all of the user's preferences.
+         */
+        data object Settings : RootTarget()
     }
 
     override fun buildChildNode(
@@ -60,6 +66,7 @@ class RootNode(
     ): Node<*> = when (navTarget) {
         RootTarget.Main -> MainNode(nodeContext, this)
         RootTarget.LoggedOut -> LoggedOutNode(nodeContext)
+        RootTarget.Settings -> SettingsNode(nodeContext, this) { backStack.pop() }
         is RootTarget.Recipe -> RecipeNode(nodeContext, navTarget.recipe, this) { backStack.pop() }
     }
 
@@ -75,7 +82,9 @@ class RootNode(
         attachChild<Node<C>> {
             when (backStack.currentTarget()) {
                 // Destroy [LoggedOut] and [Overlay] since it never needs to be preserved.
-                RootTarget.LoggedOut, is RootTarget.Recipe -> backStack.replace(target)
+                RootTarget.LoggedOut,
+                RootTarget.Settings,
+                is RootTarget.Recipe -> backStack.replace(target)
                 RootTarget.Main ->
                     when (target) {
                         // Destroy [Main] if the user logs out.
