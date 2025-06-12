@@ -101,7 +101,7 @@ class MainNode(
         )
 
         /**
-         * [Search] contains the infinite scrolling list of events.
+         * [Search] contains the search functionality to find recipes based on keywords.
          */
         data object Search : MainTarget(
             "Search",
