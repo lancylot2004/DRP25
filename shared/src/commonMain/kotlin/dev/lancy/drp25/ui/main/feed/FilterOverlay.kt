@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.remember
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.graphics.Color
@@ -22,12 +21,7 @@ import dev.lancy.drp25.utilities.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
-    var filterValues by remember { mutableStateOf(FilterValues()) }
-    LaunchedEffect(filterValues) {
-        updateCallback(filterValues)
-    }
-
+fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues>) {
     Text(
         "Filters",
         style = Typography.titleMedium,
@@ -37,6 +31,8 @@ fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
             .align(Alignment.CenterHorizontally),
         textAlign = TextAlign.Center,
     )
+
+    val filterValues by filterPersistence.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -50,35 +46,35 @@ fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
             value = filterValues.timeRange,
             range = FilterRanges.TIME_RANGE,
             format = { formatRange(it, FilterRanges.TIME_RANGE, "min", "any duration") },
-        ) { filterValues = filterValues.copy(timeRange = it) }
+        ) { filterPersistence.update { copy(timeRange = it) } }
 
         StarRatingSection(
             title = "Minimum rating",
             rating = filterValues.rating,
-        ) { filterValues = filterValues.copy(rating = it) }
+        ) { filterPersistence.update { copy(rating = it) } }
 
         ChipSelectionSection(
             "Type of meal",
             MealType.entries,
             filterValues.selectedMealTypes,
-        ) { filterValues = filterValues.copy(selectedMealTypes = it) }
+        ) { filterPersistence.update { copy(selectedMealTypes = it) } }
 
         ChipSelectionSection(
             "Cuisine",
             Cuisine.entries,
             filterValues.selectedCuisines,
-        ) { filterValues = filterValues.copy(selectedCuisines = it) }
+        ) { filterPersistence.update { copy(selectedCuisines = it) } }
 
         ChipSelectionSection(
             "Dietary needs",
             Diet.entries,
             filterValues.selectedDiets,
-        ) { filterValues = filterValues.copy(selectedDiets = it) }
+        ) { filterPersistence.update { copy(selectedDiets = it) } }
 
         BinarySection(
             title = "Use only my equipment",
             value = filterValues.useMyEquipmentOnly,
-            onValueChange = { filterValues = filterValues.copy(useMyEquipmentOnly = it) },
+            onValueChange = { filterPersistence.update { copy(useMyEquipmentOnly = it) } },
         )
 
         SliderSection(
@@ -86,28 +82,28 @@ fun ColumnScope.FilterContent(updateCallback: (FilterValues) -> Unit) {
             filterValues.calorieRange,
             FilterRanges.CALORIE_RANGE,
             { formatRange(it, FilterRanges.CALORIE_RANGE, "cal", "any calories") },
-        ) { filterValues = filterValues.copy(calorieRange = it) }
+        ) { filterPersistence.update { copy(calorieRange = it) } }
 
         SliderSection(
             "Protein",
             filterValues.proteinRange,
             FilterRanges.PROTEIN_RANGE,
             { formatRange(it, FilterRanges.PROTEIN_RANGE, "g", "any protein content") },
-        ) { filterValues = filterValues.copy(proteinRange = it) }
+        ) { filterPersistence.update { copy(proteinRange = it) } }
 
         SliderSection(
             "Fat",
             filterValues.fatRange,
             FilterRanges.FAT_RANGE,
             { formatRange(it, FilterRanges.FAT_RANGE, "g", "any fat content") },
-        ) { filterValues = filterValues.copy(fatRange = it) }
+        ) { filterPersistence.update { copy(fatRange = it) } }
 
         SliderSection(
             "Carbohydrates",
             filterValues.carbsRange,
             FilterRanges.CARBS_RANGE,
             { formatRange(it, FilterRanges.CARBS_RANGE, "g", "any carb content") },
-        ) { filterValues = filterValues.copy(carbsRange = it) }
+        ) { filterPersistence.update { copy(carbsRange = it) } }
     }
 }
 

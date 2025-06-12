@@ -1,5 +1,8 @@
 package dev.lancy.drp25
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -20,7 +23,7 @@ fun MainViewController() =
         AppTheme {
             Scaffold {
                 IosNodeHost(
-                    modifier = Modifier,
+                    modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
                     onBackPressedEvents = backEvents.receiveAsFlow(),
                     integrationPoint = remember { integrationPoint },
                 ) { RootNode(nodeContext = it) }
