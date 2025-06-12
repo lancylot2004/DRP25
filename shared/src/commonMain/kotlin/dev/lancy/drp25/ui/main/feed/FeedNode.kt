@@ -21,7 +21,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -90,9 +90,8 @@ class FeedNode(
         val filterPersistence = rememberPersisted("filters") { FilterValues() }
         val filterValues by filterPersistence.state.collectAsState()
 
-        DisposableEffect(this.lifecycleScope) {
+        LaunchedEffect(this.lifecycleScope) {
             scope.updateRecipes(filterValues) { recipes = it }
-            onDispose { }
         }
 
         Box(Modifier.fillMaxSize()) {

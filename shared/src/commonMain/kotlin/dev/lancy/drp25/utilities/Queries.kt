@@ -9,6 +9,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
+import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 
 val client: SupabaseClient = createSupabaseClient(
@@ -44,12 +45,64 @@ val applyRecipeFilters: @PostgrestFilterDSL (SelectRequestBuilder.(filters: Filt
 suspend fun fetchRecipes(filters: FilterValues? = null): List<Recipe> = runCatching {
     client
         .from("recipes")
-        .select(request = { applyRecipeFilters(filters) })
+        .select { applyRecipeFilters(filters) }
         .decodeList<Recipe>()
 }.fold(
     onSuccess = ::identity,
     onFailure = { error ->
         println("Failed to fetch recipes: ${error.message}")
         emptyList<Recipe>()
+    },
+)
+
+// Fetch saved recipes in the database
+suspend fun fetchSavedRecipes(): List<Recipe> {
+    val savedRecipeIds = runCatching {
+        client
+            .from("saved_recipes")
+            .select()
+            .decodeList<RecipeID>()
+    }.fold(
+        onSuccess = ::identity,
+        onFailure = { error ->
+            println("Failed to fetch saved recipes: ${error.message}")
+            emptyList<RecipeID>()
+        },
+    ).map { it.recipe_id.toString() }
+
+    val savedRecipes = fetchRecipes().filter { savedRecipeIds.contains(it.id) }
+
+    return savedRecipes
+}
+
+
+suspend fun isSavedRecipe(recipe: Recipe): Boolean = runCatching {
+    client
+        .from("saved_recipes")
+        .select { filter { filter("recipe_id", FilterOperator.EQ, recipe.id) } }
+        .decodeSingleOrNull<Unit>() != null
+}.fold(
+    onSuccess = ::identity,
+    onFailure = { error ->
+        println("Failed to check saved recipe: ${error.message}")
+        false
+    },
+)
+
+@Serializable
+data class RecipeID(
+    val recipe_id: Int,
+)
+
+suspend fun setSaved(recipe: Recipe, saved: Boolean): Boolean = runCatching {
+    when (saved) {
+        true -> client.from("saved_recipes").insert(RecipeID(recipe.id.toInt()))
+        false -> client.from("saved_recipes").delete { filter { eq("recipe_id", recipe.id) } }
+    }
+}.fold(
+    onSuccess = { true },
+    onFailure = { error ->
+        println("Failed to set saved recipe: ${error.message}")
+        false
     },
 )

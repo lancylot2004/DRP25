@@ -1,5 +1,6 @@
 package dev.lancy.drp25.ui.main.feed
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.border
@@ -13,17 +14,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Clock
+import com.composables.icons.lucide.Heart
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Users
 import com.composables.icons.lucide.Zap
@@ -38,12 +50,21 @@ import dev.lancy.drp25.utilities.Const
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.isSavedRecipe
+import dev.lancy.drp25.utilities.setSaved
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import kotlinx.coroutines.launch
 
 @Composable
 fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> Unit) {
     val hazeState = remember { HazeState() }
+    val scope = rememberCoroutineScope()
+    var isSaved by remember { mutableStateOf(false) }
+
+    LaunchedEffect(scope) {
+        scope.launch { isSaved = isSavedRecipe(recipe) }
+    }
 
     Box(
         modifier = modifier
@@ -62,6 +83,39 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
             contentScale = ContentScale.Crop,
             animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
         )
+
+        Column(
+            modifier = Modifier
+                .hazeChild(
+                    state = hazeState,
+                    shape = Shape.RoundedMedium,
+                    style = Const.HazeStyle,
+                ).align(Alignment.CenterEnd),
+        ) {
+            IconButton(
+                onClick = {
+                    scope.launch {
+                        isSaved = !isSaved
+                        setSaved(recipe, isSaved)
+                    }
+                },
+                modifier = Modifier
+                    .shadow(
+                        elevation = Size.IconMedium,
+                        ambientColor = Color.Black,
+                        spotColor = Color.Black,
+                    ),
+            ) {
+                AnimatedContent(isSaved) {
+                    Icon(
+                        imageVector = Lucide.Heart,
+                        contentDescription = null,
+                        tint = if (it) Color(0xFFFF6767) else Color.White,
+                        modifier = Modifier.size(Size.IconMedium),
+                    )
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
