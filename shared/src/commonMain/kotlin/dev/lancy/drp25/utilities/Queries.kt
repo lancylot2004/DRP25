@@ -55,6 +55,27 @@ suspend fun fetchRecipes(filters: FilterValues? = null): List<Recipe> = runCatch
     },
 )
 
+// Fetch saved recipes in the database
+suspend fun fetchSavedRecipes(): List<Recipe> {
+    val savedRecipeIds = runCatching {
+        client
+            .from("saved_recipes")
+            .select()
+            .decodeList<RecipeID>()
+    }.fold(
+        onSuccess = ::identity,
+        onFailure = { error ->
+            println("Failed to fetch saved recipes: ${error.message}")
+            emptyList<RecipeID>()
+        },
+    ).map { it.recipe_id.toString() }
+
+    val savedRecipes = fetchRecipes().filter { savedRecipeIds.contains(it.id) }
+
+    return savedRecipes
+}
+
+
 suspend fun isSavedRecipe(recipe: Recipe): Boolean = runCatching {
     client
         .from("saved_recipes")
