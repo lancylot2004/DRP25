@@ -14,7 +14,7 @@ import com.russhwolf.settings.serialization.decodeValueOrNull
 
 @OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
 fun getPreferredSystem(): MeasurementSystem =
-    settings.decodeValueOrNull<MeasurementSystem>("measurement_system") ?: MeasurementSystem.IMPERIAL
+    settings.decodeValueOrNull<MeasurementSystem>("measurement_system") ?: MeasurementSystem.METRIC
 
 // INGREDIENTS
 @Serializable
