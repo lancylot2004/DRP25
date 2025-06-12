@@ -65,8 +65,6 @@ data class Ingredient(
 
 enum class MeasurementSystem { METRIC, IMPERIAL }
 
-private fun getMeasurementSystem(unit: IngredientUnit): MeasurementSystem = TODO()
-
 @Serializable(with = IngredientUnitSerialiser::class)
 @Parcelize
 sealed class IngredientUnit(
@@ -159,47 +157,47 @@ fun Double.convert(from: IngredientUnit, to: IngredientUnit): Double =
 fun Int.convert(from: IngredientUnit, to: IngredientUnit): Double =
     toDouble().convert(from, to)
 
-//fun oldFormatIngredientDisplay(ingredient: Ingredient): String {
-//    val currentSystem = getMeasurementSystem(ingredient.unit)
-//    val displayUnit = if (currentSystem == PREFERREDSYSTEM) {
-//        ingredient.unit
-//    } else {
-//        preferredUnitFor(PREFERREDSYSTEM, ingredient.unit)
-//    }
-//    val displayQuantity = if (ingredient.unit == displayUnit) {
-//        ingredient.quantity
-//    } else {
-//        // UnitConverter.convert(ingredient.quantity, ingredient.unit, displayUnit)
-//    }
-//    // val quantityFormatted = formatDouble(displayQuantity)
-//    //val unitLabel = displayUnit.shortName
-//
-//    //return if (unitLabel.isNotEmpty()) {
-//    //    "$quantityFormatted $unitLabel ${ingredient.name}"
-//    } else {
-//        "$quantityFormatted ${ingredient.name}"
-//    }
-//}
+private fun getMeasurementSystem(unit: IngredientUnit): MeasurementSystem = when (unit) {
+    is IngredientUnit.WeightUnit.Gram,
+    is IngredientUnit.WeightUnit.Kilogram -> MeasurementSystem.METRIC
+    is IngredientUnit.WeightUnit.Ounce,
+    is IngredientUnit.WeightUnit.Pound -> MeasurementSystem.IMPERIAL
+    else -> MeasurementSystem.METRIC
+}
 
-//private fun preferredUnitFor(system: MeasurementSystem, fromUnit: Unit): Unit = when (system) {
-//    MeasurementSystem.METRIC -> when (fromUnit) {
-//        Unit.OUNCE -> Unit.GRAM
-//        Unit.POUND -> Unit.KILOGRAM
-//        else -> fromUnit
-//    }
-//    MeasurementSystem.IMPERIAL -> when (fromUnit) {
-//        Unit.GRAM -> Unit.OUNCE
-//        Unit.KILOGRAM -> Unit.POUND
-//        else -> fromUnit
-//    }
-//}
-
-fun formatIngredientDisplay(ingredient: Ingredient): String = buildString {
-    append(formatDouble(ingredient.quantity))
-    if (ingredient.unit.shortName.isNotEmpty()) {
-        append(" ${ingredient.unit}")
+private fun preferredUnitFor(system: MeasurementSystem, fromUnit: IngredientUnit): IngredientUnit = when (system) {
+    MeasurementSystem.METRIC -> when (fromUnit) {
+        IngredientUnit.WeightUnit.Ounce -> IngredientUnit.WeightUnit.Gram
+        IngredientUnit.WeightUnit.Pound -> IngredientUnit.WeightUnit.Kilogram
+        else -> fromUnit
     }
-    append(" ${ingredient.name.lowercase()}")
+    MeasurementSystem.IMPERIAL -> when (fromUnit) {
+        IngredientUnit.WeightUnit.Gram -> IngredientUnit.WeightUnit.Ounce
+        IngredientUnit.WeightUnit.Kilogram -> IngredientUnit.WeightUnit.Pound
+        else -> fromUnit
+    }
+}
+
+fun formatIngredientDisplay(ingredient: Ingredient): String {
+    val currentSystem = getMeasurementSystem(ingredient.unit)
+    val displayUnit = if (currentSystem == PREFERREDSYSTEM) {
+        ingredient.unit
+    } else {
+        preferredUnitFor(PREFERREDSYSTEM, ingredient.unit)
+    }
+    val displayQuantity = if (ingredient.unit == displayUnit) {
+        ingredient.quantity
+    } else {
+        ingredient.quantity.convert(ingredient.unit, displayUnit)
+    }
+    val quantityFormatted = formatDouble(displayQuantity)
+    val unitLabel = displayUnit.shortName
+
+    return if (unitLabel.isNotEmpty()) {
+        "$quantityFormatted $unitLabel ${ingredient.name}"
+    } else {
+        "$quantityFormatted ${ingredient.name}"
+    }
 }
 
 fun formatDouble(quantity: Double): String = when {
