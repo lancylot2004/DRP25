@@ -43,11 +43,11 @@ import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.ScreenSize
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.fetchRecipes
 import dev.lancy.drp25.utilities.rememberPersisted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +65,7 @@ class FeedNode(
         onUpdate: (List<Recipe>) -> Unit,
     ) {
         launch {
-            val newRecipes = fetchRecipes(filterValues)
+            val newRecipes = Client.fetchRecipes(filterValues)
             withContext(Dispatchers.Main) { onUpdate(newRecipes) }
         }
     }
