@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -43,10 +44,12 @@ import dev.lancy.drp25.utilities.Typography
 class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
     @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+
     @Composable
     override fun Content(modifier: Modifier) {
         var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
         val scope = rememberCoroutineScope()
+        val queryState = remember { mutableStateOf("") }
 
         LaunchedEffect(Unit) {
             recipes = fetchRecipes()
@@ -54,18 +57,16 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
 
         Column(modifier = Modifier.fillMaxSize()) {
             SearchBar(
-                query = "",
-                onQueryChange = {},
-                onSearch = {},
-                content = {},
+                query = queryState.value,
+                onQueryChange = { queryState.value = it },
+                onSearch = {
+                    scope.launch {
+                        val filtered = searchRecipes(queryState.value)
+                        recipes = filtered
+                    }
+                },
                 active = false,
                 onActiveChange = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Size.Padding)
-                    .clip(Shape.RoundedSmall)
-                    .background(ColourScheme.surface)
-                    .padding(Size.Padding),
                 placeholder = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -80,7 +81,14 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
                             style = Typography.bodyLarge
                         )
                     }
-                }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Size.Padding)
+                    .clip(Shape.RoundedSmall)
+                    .background(ColourScheme.surface)
+                    .padding(Size.Padding),
+                content = {}
             )
 
             Spacer(Modifier.height(Size.Spacing))
