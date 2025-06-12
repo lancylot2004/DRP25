@@ -12,25 +12,25 @@ fun parseQueryToFilters(query: String): FilterValues {
     val q = query.lowercase()
 
     // Time parsing
-    val underRegex = Regex("""(?:under|less than|<)\s*(\d+)\s*(minutes|min|mins)?""")
-    val overRegex = Regex("""(?:over|more than|greater than|>)\s*(\d+)\s*(minutes|min|mins)?""")
-    val betweenRegex = Regex("""(\d+)\s*(?:-|to|–)\s*(\d+)\s*(minutes|min|mins)?""")
-    var timeRange = FilterRanges.TIME_DEFAULT
+    val underRegex = Regex("""(?:under|less than|<)\s*(\d+)\s*(minutes|min|mins)""")
+    val overRegex = Regex("""(?:over|more than|greater than|>)\s*(\d+)\s*(minutes|min|mins)""")
+    val betweenRegex = Regex("""(\d+)\s*(?:-|to|–)\s*(\d+)\s*(minutes|min|mins)""")
+    var timeRange = FilterRanges.TIME_RANGE
     when {
         betweenRegex.containsMatchIn(q) -> {
             val match = betweenRegex.find(q)!!
-            val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_DEFAULT.start
-            val end = match.groupValues[2].toFloatOrNull() ?: FilterRanges.TIME_DEFAULT.endInclusive
+            val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.start
+            val end = match.groupValues[2].toFloatOrNull() ?: FilterRanges.TIME_RANGE.endInclusive
             timeRange = start..end
         }
         underRegex.containsMatchIn(q) -> {
             val match = underRegex.find(q)!!
-            val end = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_DEFAULT.endInclusive
+            val end = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.endInclusive
             timeRange = FilterRanges.TIME_RANGE.start..end
         }
         overRegex.containsMatchIn(q) -> {
             val match = overRegex.find(q)!!
-            val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_DEFAULT.start
+            val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.start
             timeRange = start..FilterRanges.TIME_RANGE.endInclusive
         }
     }
@@ -44,9 +44,9 @@ fun parseQueryToFilters(query: String): FilterValues {
 
     // Calories, protein, fat, carbs parsing
     fun parseRange(q: String, key: String, default: ClosedFloatingPointRange<Float>): ClosedFloatingPointRange<Float> {
-        val under = Regex("""(?:under|less than|<)\s*(\d+)\s*(?:$key)?""")
-        val over = Regex("""(?:over|more than|greater than|>)\s*(\d+)\s*(?:$key)?""")
-        val between = Regex("""(\d+)\s*(?:-|to|–)\s*(\d+)\s*(?:$key)?""")
+        val under = Regex("""(?:under|less than|<)\s*(\d+)\s*(g?\s*$key)""")
+        val over = Regex("""(?:over|more than|greater than|>)\s*(\d+)\s*(g?\s*$key)""")
+        val between = Regex("""(\d+)\s*(?:-|to|–)\s*(\d+)\s*(g?\s*$key)""")
         return when {
             between.containsMatchIn(q) -> {
                 val m = between.find(q)!!
@@ -67,10 +67,10 @@ fun parseQueryToFilters(query: String): FilterValues {
             else -> default
         }
     }
-    val calorieRange = parseRange(q, "calories?", FilterRanges.CALORIE_DEFAULT)
-    val proteinRange = parseRange(q, "g protein", FilterRanges.PROTEIN_DEFAULT)
-    val fatRange = parseRange(q, "g fat", FilterRanges.FAT_DEFAULT)
-    val carbsRange = parseRange(q, "g carbs?", FilterRanges.CARBS_DEFAULT)
+    val calorieRange = parseRange(q, "cal(?:ories|s)?", FilterRanges.CALORIE_RANGE)
+    val proteinRange = parseRange(q, "protein", FilterRanges.PROTEIN_RANGE)
+    val fatRange = parseRange(q, "fat", FilterRanges.FAT_RANGE)
+    val carbsRange = parseRange(q, "carbs?", FilterRanges.CARBS_RANGE)
 
     // Diets
     val diets = Diet.entries.filter { d ->
@@ -92,25 +92,28 @@ fun parseQueryToFilters(query: String): FilterValues {
 
     // Included/Avoided Ingredients
     val words = q.split(Regex("""\W+"""))
-    val includedIngredients = Ingredients.entries.filter { ing ->
-        words.any { it == ing.name.lowercase() || it == ing.displayName.lowercase() }
-    }.toSet()
     val avoidedIngredients = Ingredients.entries.filter { ing ->
         Regex("""(?:no|without|avoid)\s+${Regex.escape(ing.name.lowercase())}""").containsMatchIn(q) ||
                 Regex("""(?:no|without|avoid)\s+${Regex.escape(ing.displayName.lowercase())}""").containsMatchIn(q)
     }.toSet()
 
+    val includedIngredients = Ingredients.entries.filter { ing ->
+        // Only include if not in avoided
+        !avoidedIngredients.contains(ing) &&
+                words.any { it == ing.name.lowercase() || it == ing.displayName.lowercase() }
+    }.toSet()
+
     return FilterValues(
         timeRange = timeRange,
+        calorieRange = calorieRange,
+        proteinRange = proteinRange,
+        fatRange = fatRange,
+        carbsRange = carbsRange,
         rating = rating,
         selectedMealTypes = mealTypes,
         selectedCuisines = cuisines,
         selectedDiets = diets,
         includedIngredients = includedIngredients,
         avoidedIngredients = avoidedIngredients,
-        calorieRange = calorieRange,
-        proteinRange = proteinRange,
-        fatRange = fatRange,
-        carbsRange = carbsRange
     )
 }
