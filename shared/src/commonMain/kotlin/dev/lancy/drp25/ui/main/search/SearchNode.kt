@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Search
-import com.composables.icons.lucide.Settings
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.ColourScheme
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -28,7 +26,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.TabRowDefaults.Divider
-import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
@@ -39,7 +36,6 @@ import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.utilities.fetchRecipes
-import dev.lancy.drp25.ui.main.feed.FeedCard
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.utilities.Shape
 import kotlinx.coroutines.launch
