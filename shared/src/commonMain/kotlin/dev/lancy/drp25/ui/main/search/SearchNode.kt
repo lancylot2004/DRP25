@@ -97,6 +97,20 @@ class SearchNode(nodeContext: NodeContext, parent: MainNode): LeafNode(nodeConte
                         )
                     }
                 },
+                trailingIcon = {
+                    if (queryState.value.isNotEmpty()) {
+                        Icon(
+                            imageVector = Lucide.CircleX,
+                            contentDescription = "Clear",
+                            tint = ColourScheme.onSurface,
+                            modifier = Modifier
+                                .clickable {
+                                    queryState.value = ""
+                                    searchPerformed = false
+                                }
+                        )
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Size.Padding)
