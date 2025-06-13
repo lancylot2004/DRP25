@@ -77,7 +77,7 @@ val applyRecipeFilters: @PostgrestFilterDSL (SelectRequestBuilder.(filters: Filt
 // Fetch all recipes in the database
 suspend fun fetchRecipes(filters: FilterValues? = null): List<Recipe> = runCatching {
     client
-        .from("recipes")
+        .from("recipes_dup")
         .select { applyRecipeFilters(filters) }
         .decodeList<Recipe>()
 }.fold(

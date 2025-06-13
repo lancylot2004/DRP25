@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Carrot
 import com.composables.icons.lucide.Clock
 import com.composables.icons.lucide.Heart
@@ -131,7 +133,16 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
                 color = ColourScheme.onBackground,
             )
 
-            StarRating(recipe.rating)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StarRating(recipe.rating)
+                Text(
+                    text = "${recipe.rating} / 5",
+                    style = Typography.bodyMedium,
+                    color = ColourScheme.onBackground,
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontSize = 16.sp
+                )
+            }
 
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
