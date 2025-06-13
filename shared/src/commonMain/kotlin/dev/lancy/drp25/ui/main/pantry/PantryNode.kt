@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import dev.lancy.drp25.utilities.Size
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import dev.lancy.drp25.data.IngredientItem
@@ -16,14 +15,13 @@ import dev.lancy.drp25.data.getDefaultIngredients
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
-import dev.lancy.drp25.ui.shared.NavConsumer
-import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.utilities.Size
 
 class PantryNode(
     nodeContext: NodeContext,
-    parent: MainNode
+    parent: MainNode,
 ) : LeafNode(nodeContext),
-    NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent){
+    NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
     @Composable
     override fun Content(modifier: Modifier) {
 //        PantryScreen(modifier)
@@ -51,22 +49,22 @@ fun PantryScreen(modifier: Modifier = Modifier) {
                     .padding(bottom = Size.BarLarge)
                     .background(Color.Transparent),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 IngredientsToolbar(
                     selectedTabIndex = selectedTabIndex,
                     onTabSelected = { selectedTabIndex = it },
                     tabTitles = tabTitles,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
 
                 UtensilsToolbar(
                     onUtensilsClick = {
                         showUtensilsScreen = !showUtensilsScreen
-                    }
+                    },
                 )
             }
-        }
+        },
     ) {
         if (showUtensilsScreen) {
             UtensilsScreen(modifier = Modifier.fillMaxSize())
@@ -80,7 +78,7 @@ fun PantryScreen(modifier: Modifier = Modifier) {
                         allIngredients[index] = updatedIngredient
                     }
                 },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

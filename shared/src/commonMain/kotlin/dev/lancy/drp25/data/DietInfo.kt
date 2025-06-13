@@ -23,6 +23,7 @@ enum class Diet(val displayName: String) {
 
 @Serializable
 enum class Cuisine(val displayName: String) {
+    ASIAN("Asian"),
     ITALIAN("Italian"),
     CHINESE("Chinese"),
     MEDITERRANEAN("Mediterranean"),
@@ -58,25 +59,43 @@ enum class MealType(val displayName: String) {
 
 @Serializable
 enum class Utensil(val displayName: String) {
-    AIR_FRYER("Air Fryer"),
-    INSTANT_POT("Instant Pot"),
-    PRESSURE_COOKER("Pressure Cooker"),
-    SLOW_COOKER("Slow Cooker"),
-    BLENDER("Blender"),
-    STEAMER("Steamer"),
-    WHISK("Whisk"),
-    SCALE("Scale"),
-    GARLIC_PRESS("Garlic Press"),
-    PASTRY_BAG("Pastry Bag"),
-    MUFFIN_TIN("Muffin Tin"),
-    BAKING_DISH("Baking Dish"),
-    POT("Pot"),
+    CLEAVER_BUTCHER("Cleaver Butcher"),
+    COOK_KNIFE("Cook Knife"),
+    FOOD_PROCESSOR("Food Processor"),
+    FOOD_SCALE("Food Scale"),
+    FORK("Fork"),
+    FREEZER("Freezer"),
+    FRIDGE("Fridge"),
+    FUNNEL("Funnel"),
+    GRATER("Grater"),
+    GRILL("Grill"),
+    HAND_MIXER("Hand Mixer"),
+    JUICER("Juicer"),
+    KETTLE("Kettle"),
+    LADLE("Ladle"),
+    MEASURING_CUP("Measuring Cup"),
+    MICROWAVE("Microwave"),
+    MIXING_BOWL("Mixing Bowl"),
+    OVEN("Oven"),
+    OVEN_GLOVE("Oven Glove"),
     PAN("Pan"),
+    PEELER("Peeler"),
+    PRESSURE_COOKER("Pressure Cooker"),
+    RICE_COOKER("Rice Cooker"),
+    ROLLING_PIN("Rolling Pin"),
+    SAUCEPAN("Saucepan"),
+    SCRISSORS("Scissors"),
+    SKIMMER("Skimmer"),
     SPATULA("Spatula"),
-    GLASS("Glass"),
+    STAND_MIXER("Stand Mixer"),
+    STOCK_POT("Stock Pot"),
+    STOVE("Stove"),
+    STRAINER("Strainer"),
+    TENDERIZER("Tenderizer"),
     TOASTER("Toaster"),
-    BOWL("Bowl"),
-    FOIL("Foil");
+    TONGS("Tongs"),
+    WHISK("Whisk"),
+    WOK("Wok");
 
     override fun toString() = displayName
 }

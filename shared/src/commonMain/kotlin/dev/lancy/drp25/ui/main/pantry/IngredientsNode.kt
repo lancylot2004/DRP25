@@ -33,7 +33,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -180,8 +184,26 @@ private fun IngredientRow(
     onQuantityChange: (Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var quantityText by remember { mutableStateOf(ingredient.quantity.formatQuantity()) }
+    var quantityText by remember(ingredient.quantity) {
+        mutableStateOf(ingredient.quantity.formatQuantity())
+    }
     var isEditing by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+
+    // Update text when ingredient quantity changes externally (from +/- buttons)
+    LaunchedEffect(ingredient.quantity) {
+        if (!isEditing) {
+            quantityText = ingredient.quantity.formatQuantity()
+        }
+    }
+
+    fun commitQuantityChange() {
+        val newQty = quantityText.toDoubleOrNull()?.coerceAtLeast(0.0) ?: ingredient.quantity
+        onQuantityChange(newQty)
+        quantityText = newQty.formatQuantity()
+        isEditing = false
+        focusManager.clearFocus()
+    }
 
     Row(
         modifier = modifier
@@ -213,41 +235,58 @@ private fun IngredientRow(
                 onClick = {
                     val newQty = (ingredient.quantity - ingredient.incrementAmount).coerceAtLeast(0.0)
                     onQuantityChange(newQty)
-                    quantityText = newQty.formatQuantity()
-                }, enabled = ingredient.quantity > 0, modifier = Modifier.size(40.dp)
-            ) { Icon(imageVector = Icons.Filled.Remove, contentDescription = null) }
+                },
+                enabled = ingredient.quantity > 0,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(imageVector = Icons.Filled.Remove, contentDescription = null)
+            }
+
             Box(modifier = Modifier.width(60.dp)) {
                 if (isEditing) {
                     OutlinedTextField(
                         value = quantityText,
-                        onValueChange = { text -> if (text.matches(Regex("^\\d*\\.?\\d*$"))) quantityText = text },
+                        onValueChange = { text ->
+                            if (text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                quantityText = text
+                            }
+                        },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        keyboardActions = KeyboardActions(onDone = {
-                            val newQty = quantityText.toDoubleOrNull() ?: 0.0
-                            onQuantityChange(newQty)
-                            quantityText = newQty.formatQuantity()
-                            isEditing = false
-                        }),
-                        //colors = TextFieldDefaults.outlinedTextFieldColors(),
+                        keyboardActions = KeyboardActions(
+                            onDone = { commitQuantityChange() }
+                        ),
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    Text(
-                        text = quantityText,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxSize().clickable { isEditing = true }
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable {
+                                isEditing = true
+                            }
+                            .padding(vertical = 8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = quantityText,
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
+
             IconButton(
                 onClick = {
                     val newQty = ingredient.quantity + ingredient.incrementAmount
                     onQuantityChange(newQty)
-                    quantityText = newQty.formatQuantity()
-                }, modifier = Modifier.size(40.dp)
-            ) { Icon(imageVector = Icons.Filled.Add, contentDescription = null) }
+                },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+            }
+
             Text(
                 text = ingredient.defaultUnit,
                 style = MaterialTheme.typography.bodySmall,
