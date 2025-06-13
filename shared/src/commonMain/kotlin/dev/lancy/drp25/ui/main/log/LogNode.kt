@@ -14,11 +14,12 @@ import androidx.compose.ui.Modifier
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.Size
-import dev.lancy.drp25.utilities.fetchSavedRecipes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -31,7 +32,7 @@ class LogNode(
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
     private fun CoroutineScope.updateRecipes(onUpdate: (List<Recipe>) -> Unit) {
         launch {
-            val newRecipes = fetchSavedRecipes()
+            val newRecipes = Client.fetchSavedRecipes()
             withContext(Dispatchers.Main) { onUpdate(newRecipes) }
         }
     }
@@ -54,7 +55,13 @@ class LogNode(
                 bottom = Size.BarLarge,
             ),
         ) {
-            items(recipes) { recipeId -> logEntry(recipeId) }
+            items(recipes) { recipe ->
+                logEntry(recipe) {
+                    scope.launch {
+                        navParent.superNavigate<Nothing>(RootNode.RootTarget.Recipe(recipe))
+                    }
+                }
+            }
         }
     }
 }

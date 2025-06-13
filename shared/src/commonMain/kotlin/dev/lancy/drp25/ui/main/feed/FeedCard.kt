@@ -47,13 +47,12 @@ import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
+import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Const
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
-import dev.lancy.drp25.utilities.isSavedRecipe
-import dev.lancy.drp25.utilities.setSaved
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 import kotlinx.coroutines.launch
@@ -65,7 +64,7 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
     var isSaved by remember { mutableStateOf(false) }
 
     LaunchedEffect(scope) {
-        scope.launch { isSaved = isSavedRecipe(recipe) }
+        scope.launch { isSaved = Client.isSavedRecipe(recipe) }
     }
 
     Box(
@@ -98,7 +97,7 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
                 onClick = {
                     scope.launch {
                         isSaved = !isSaved
-                        setSaved(recipe, isSaved)
+                        Client.setSaved(recipe, isSaved)
                     }
                 },
                 modifier = Modifier

@@ -33,12 +33,12 @@ import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
 
 @Composable
-fun logEntry(recipe: Recipe) {
+fun logEntry(recipe: Recipe, navCallback: () -> Unit) {
     Row(
         modifier = Modifier
             .padding(Size.Padding)
             .clip(Shape.RoundedMedium)
-            .clickable(role = Role.Button) {},
+            .clickable(role = Role.Button) { navCallback() },
     ) {
         KamelImage(
             resource = { asyncPainterResource(recipe.cardImage) },
