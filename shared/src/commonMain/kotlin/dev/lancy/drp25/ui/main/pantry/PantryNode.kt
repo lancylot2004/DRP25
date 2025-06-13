@@ -14,15 +14,21 @@ import com.bumble.appyx.navigation.node.LeafNode
 import dev.lancy.drp25.data.IngredientItem
 import dev.lancy.drp25.data.getDefaultIngredients
 import dev.lancy.drp25.ui.main.MainNode
+import dev.lancy.drp25.ui.shared.NavConsumer
+import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.ui.shared.NavConsumer
+import dev.lancy.drp25.ui.shared.NavConsumerImpl
 
 class PantryNode(
     nodeContext: NodeContext,
     parent: MainNode
-) : LeafNode(nodeContext) {
-
+) : LeafNode(nodeContext),
+    NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent){
     @Composable
     override fun Content(modifier: Modifier) {
-        PantryScreen(modifier)
+//        PantryScreen(modifier)
+
+        QRScannerView { }
     }
 }
 

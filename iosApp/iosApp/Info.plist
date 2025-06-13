@@ -39,5 +39,7 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>NSCameraUsageDescription</key><string>$(PRODUCT_NAME) wants to use scan grocery products for you.</string>
+    <key>NSPhotoLibraryUsageDescription</key><string>$(PRODUCT_NAME) wants to access your photo library to scan grocery products.</string>
 </dict>
 </plist>
