@@ -2,12 +2,19 @@ package dev.lancy.drp25.data
 
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
+import com.russhwolf.settings.ExperimentalSettingsApi
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import dev.lancy.drp25.utilities.settings
+import com.russhwolf.settings.serialization.decodeValueOrNull
+
+@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
+fun getPreferredSystem(): MeasurementSystem =
+    settings.decodeValueOrNull<MeasurementSystem>("measurement_system") ?: MeasurementSystem.METRIC
 
 // INGREDIENTS
 @Serializable
@@ -60,6 +67,8 @@ data class Ingredient(
     val quantity: Double,
     val unit: IngredientUnit,
 ) : Parcelable
+
+enum class MeasurementSystem { METRIC, IMPERIAL }
 
 @Serializable(with = IngredientUnitSerialiser::class)
 @Parcelize
@@ -153,12 +162,48 @@ fun Double.convert(from: IngredientUnit, to: IngredientUnit): Double =
 fun Int.convert(from: IngredientUnit, to: IngredientUnit): Double =
     toDouble().convert(from, to)
 
-fun formatIngredientDisplay(ingredient: Ingredient): String = buildString {
-    append(formatDouble(ingredient.quantity))
-    if (ingredient.unit.shortName.isNotEmpty()) {
-        append(" ${ingredient.unit}")
+private fun getMeasurementSystem(unit: IngredientUnit): MeasurementSystem = when (unit) {
+    is IngredientUnit.WeightUnit.Gram,
+    is IngredientUnit.WeightUnit.Kilogram -> MeasurementSystem.METRIC
+    is IngredientUnit.WeightUnit.Ounce,
+    is IngredientUnit.WeightUnit.Pound -> MeasurementSystem.IMPERIAL
+    else -> MeasurementSystem.METRIC
+}
+
+private fun preferredUnitFor(system: MeasurementSystem, fromUnit: IngredientUnit): IngredientUnit = when (system) {
+    MeasurementSystem.METRIC -> when (fromUnit) {
+        IngredientUnit.WeightUnit.Ounce -> IngredientUnit.WeightUnit.Gram
+        IngredientUnit.WeightUnit.Pound -> IngredientUnit.WeightUnit.Kilogram
+        else -> fromUnit
     }
-    append(" ${ingredient.name.lowercase()}")
+    MeasurementSystem.IMPERIAL -> when (fromUnit) {
+        IngredientUnit.WeightUnit.Gram -> IngredientUnit.WeightUnit.Ounce
+        IngredientUnit.WeightUnit.Kilogram -> IngredientUnit.WeightUnit.Pound
+        else -> fromUnit
+    }
+}
+
+fun formatIngredientDisplay(ingredient: Ingredient): String {
+    val preferredSystem = getPreferredSystem()
+    val currentSystem = getMeasurementSystem(ingredient.unit)
+    val displayUnit = if (currentSystem == preferredSystem) {
+        ingredient.unit
+    } else {
+        preferredUnitFor(preferredSystem, ingredient.unit)
+    }
+    val displayQuantity = if (ingredient.unit == displayUnit) {
+        ingredient.quantity
+    } else {
+        ingredient.quantity.convert(ingredient.unit, displayUnit)
+    }
+    val quantityFormatted = formatDouble(displayQuantity)
+    val unitLabel = displayUnit.shortName
+
+    return if (unitLabel.isNotEmpty()) {
+        "$quantityFormatted $unitLabel ${ingredient.name}"
+    } else {
+        "$quantityFormatted ${ingredient.name}"
+    }
 }
 
 fun formatDouble(quantity: Double): String = when {

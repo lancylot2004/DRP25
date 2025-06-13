@@ -41,6 +41,7 @@ import com.composables.icons.lucide.Cookie
 import com.composables.icons.lucide.Logs
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Telescope
+import com.composables.icons.lucide.Search
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
@@ -49,6 +50,7 @@ import dev.lancy.drp25.ui.main.feed.FeedNode
 import dev.lancy.drp25.ui.main.log.LogNode
 import dev.lancy.drp25.ui.main.me.MeNode
 import dev.lancy.drp25.ui.main.pantry.PantryNode
+import dev.lancy.drp25.ui.main.search.SearchNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.ui.shared.NavProvider
@@ -99,6 +101,15 @@ class MainNode(
         )
 
         /**
+         * [Search] contains the search functionality to find recipes based on keywords.
+         */
+        data object Search : MainTarget(
+            "Search",
+            { Lucide.Search },
+            { context, parent -> SearchNode(context, parent) },
+        )
+
+        /**
          * [Pantry] contains the ingredients and utensils in the kitchen.
          */
         data object Pantry : MainTarget(
@@ -128,7 +139,7 @@ class MainNode(
         companion object : StaticNavTarget {
             override val default: MainTarget = Feed
 
-            override val entries: List<MainTarget> = listOf(Feed, Pantry, Log, Me)
+            override val entries: List<MainTarget> = listOf(Feed, Search, Pantry, Log, Me)
         }
     }
 
