@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
@@ -54,7 +55,13 @@ class LogNode(
                 bottom = Size.BarLarge,
             ),
         ) {
-            items(recipes) { recipeId -> logEntry(recipeId) }
+            items(recipes) { recipe ->
+                logEntry(recipe) {
+                    scope.launch {
+                        navParent.superNavigate<Nothing>(RootNode.RootTarget.Recipe(recipe))
+                    }
+                }
+            }
         }
     }
 }
