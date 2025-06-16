@@ -22,7 +22,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
-import kotlin.jvm.JvmInline
 import kotlin.time.Duration.Companion.seconds
 
 internal expect fun createHttpClient(): HttpClient
@@ -55,13 +54,13 @@ object Client {
             // Apply meal type filter
             if (filters.selectedMealTypes.isNotEmpty()) {
                 val mealTypeValues = filters.selectedMealTypes.joinToString(",") { it.name }
-                filter("mealType", FilterOperator.IN, "(${mealTypeValues})")
+                filter("mealType", FilterOperator.IN, "($mealTypeValues)")
             }
 
             // Apply cuisine filter
             if (filters.selectedCuisines.isNotEmpty()) {
                 val cuisineValues = filters.selectedCuisines.joinToString(",") { it.name }
-                filter("cuisine", FilterOperator.IN, "(${cuisineValues})")
+                filter("cuisine", FilterOperator.IN, "($cuisineValues)")
             }
 
             // Apply diet filter with hierarchy logic
@@ -89,7 +88,7 @@ object Client {
                 }
 
                 val dietValues = expandedDiets.joinToString(",")
-                filter("diet", FilterOperator.IN, "(${dietValues})")
+                filter("diet", FilterOperator.IN, "($dietValues)")
             }
 
             // Apply calorie range filter
@@ -136,7 +135,7 @@ object Client {
 
     @Serializable
     private data class RecipeID(
-        val recipe_id: String
+        val recipe_id: String,
     )
 
     // Fetch product details from Open Food Facts API using barcode
@@ -283,16 +282,23 @@ object Client {
         onFailure = { error ->
             println("Failed to save recipe: ${error.message}")
             false
-        }
+        },
     )
 
     // Submit a comment to Database
-    suspend fun submitComment(recipeId: String, userName: String, commentText: String, parentCommentId: String? = null): Boolean = runCatching {
+    suspend fun submitComment(
+        recipeId: String,
+        userName: String,
+        commentText: String,
+        parentCommentId: String? = null,
+        rating: Int,
+    ): Boolean = runCatching {
         val newComment = Comment(
             recipe_id = recipeId,
             user_name = userName,
             comment_text = commentText,
-            parent_comment_id = parentCommentId
+            parent_comment_id = parentCommentId,
+            rating = rating,
         )
         supabaseClient.from("comments").insert(newComment)
         true
@@ -303,12 +309,12 @@ object Client {
 
     // Fetch comments from recipes
     suspend fun fetchCommentsForRecipe(recipeId: String): List<Comment> = runCatching {
-        supabaseClient.from("comments")
+        supabaseClient
+            .from("comments")
             .select {
                 filter { eq("recipe_id", recipeId) }
                 order("created_at", order = Order.ASCENDING) // Order by date, oldest first
-            }
-            .decodeList<Comment>()
+            }.decodeList<Comment>()
     }.getOrElse { error ->
         println("Failed to fetch comments for recipe $recipeId: ${error.message}")
         emptyList()
@@ -317,12 +323,12 @@ object Client {
     // Update recipe rating
     suspend fun updateRecipeRating(recipeId: String, newRating: Float): Boolean = runCatching {
         // 1. Fetch the current recipe to get existing rating and numRatings
-        val currentRecipe = supabaseClient.from("recipes_dup")
+        val currentRecipe = supabaseClient
+            .from("recipes_dup")
             .select {
                 filter { eq("id", recipeId) }
                 limit(1)
-            }
-            .decodeSingleOrNull<Recipe>()
+            }.decodeSingleOrNull<Recipe>()
 
         if (currentRecipe == null) {
             println("Recipe with ID $recipeId not found for rating update.")
@@ -337,11 +343,12 @@ object Client {
         // 3. Prepare the update object
         val ratingUpdate = RecipeRatingUpdate(
             rating = updatedRating,
-            numRatings = newNumRatings
+            numRatings = newNumRatings,
         )
 
         // 4. Perform the update
-        supabaseClient.from("recipes_dup")
+        supabaseClient
+            .from("recipes_dup")
             .update(ratingUpdate) {
                 filter { eq("id", recipeId) }
             }

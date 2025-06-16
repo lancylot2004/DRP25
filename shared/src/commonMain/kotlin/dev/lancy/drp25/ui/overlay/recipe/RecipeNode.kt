@@ -106,6 +106,7 @@ import dev.lancy.drp25.utilities.PersistenceManager
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.identity
 import dev.lancy.drp25.utilities.rememberDailyCookingActivityManager
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
@@ -386,13 +387,7 @@ class RecipeNode(
                                     recipeId = recipe.id,
                                     userName = "Guest User",
                                     commentText = userComment,
-                                )
-                            }
-
-                            if (userRating > 0) {
-                                Client.updateRecipeRating(
-                                    recipeId = recipe.id,
-                                    newRating = userRating.toFloat(),
+                                    rating = userRating,
                                 )
                             }
 
@@ -457,47 +452,53 @@ class RecipeNode(
                         )
 
                         emptyList()
-                    }.forEach { comment ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = ColourScheme.surfaceVariant,
-                            ),
-                            shape = Shape.RoundedMedium,
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(Size.Padding),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        comment.user_name,
-                                        style = Typography.labelLarge,
-                                        color = ColourScheme.primary,
-                                    )
-
-                                    comment.created_at?.let {
-                                        Text(
-                                            "${it.toLocalDateTime(TimeZone.currentSystemDefault()).date}",
-                                            style = Typography.bodySmall,
-                                            color = ColourScheme.outline,
-                                        )
-                                    }
-                                }
-
-                                Text(
-                                    comment.comment_text,
-                                    style = Typography.bodyMedium,
-                                    color = ColourScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                    }
+                    }.forEach { comment -> CommentCard(comment) }
             }
+        }
+    }
+
+    @Composable
+    private fun CommentCard(comment: Comment) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = ColourScheme.surfaceVariant,
+            ),
+            shape = Shape.RoundedMedium,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Size.Padding, vertical = Size.Spacing),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    comment.user_name,
+                    style = Typography.labelLarge,
+                    color = ColourScheme.primary,
+                )
+
+                comment.created_at?.let {
+                    Text(
+                        "${it.toLocalDateTime(TimeZone.currentSystemDefault()).date}",
+                        style = Typography.bodySmall,
+                        color = ColourScheme.outline,
+                    )
+                }
+            }
+
+            StarRating(
+                comment.rating.toFloat(),
+                modifier = Modifier.padding(horizontal = Size.Padding, vertical = Size.Spacing),
+            )
+
+            Text(
+                comment.comment_text,
+                modifier = Modifier.padding(horizontal = Size.Padding, vertical = Size.Spacing),
+                style = Typography.bodyMedium,
+                color = ColourScheme.onSurfaceVariant,
+            )
         }
     }
 
@@ -578,8 +579,27 @@ class RecipeNode(
     private fun ColumnScope.ColumnContent(recipe: Recipe) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             StarRating(recipe.rating)
-            androidx.compose.material.Text(
-                text = "${recipe.rating} / 5",
+
+            val ratingText = buildString {
+                if (recipe.numRatings == 0) {
+                    append("No ratings yet")
+                    return@buildString
+                }
+
+                val numericValue = recipe
+                    .rating
+                    .toString()
+                    .runCatching { slice(0..3) }
+                    .fold(
+                        onSuccess = ::identity,
+                        onFailure = { recipe.rating.toString() },
+                    )
+                append(numericValue)
+                append(" from ${recipe.numRatings} ratings")
+            }
+
+            Text(
+                text = ratingText,
                 style = Typography.bodyMedium,
                 color = ColourScheme.onBackground,
                 modifier = Modifier.padding(start = 8.dp),

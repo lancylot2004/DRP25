@@ -1,7 +1,7 @@
 package dev.lancy.drp25.data
 
-import kotlinx.serialization.Serializable
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class Comment(
@@ -10,11 +10,12 @@ data class Comment(
     val user_name: String,
     val comment_text: String,
     val created_at: Instant? = null,
-    val parent_comment_id: String? = null
+    val parent_comment_id: String? = null,
+    val rating: Int = 0,
 )
 
 @Serializable
 data class RecipeRatingUpdate(
     val rating: Float,
-    val numRatings: Int
+    val numRatings: Int,
 )
