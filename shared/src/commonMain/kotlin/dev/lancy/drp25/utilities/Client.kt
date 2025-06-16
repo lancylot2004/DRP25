@@ -86,7 +86,7 @@ object Client {
                 println("Failed to fetch saved recipes: ${error.message}")
                 emptyList<RecipeID>()
             },
-        ).map { it.recipe_id.toString() }
+        ).map { it.recipe_id }
 
         return fetchRecipes().filter { savedRecipeIds.contains(it.id) }
     }
@@ -105,16 +105,15 @@ object Client {
         },
     )
 
-    @JvmInline
     @Serializable
-    private value class RecipeID(
-        val recipe_id: Int,
+    private data class RecipeID(
+        val recipe_id: String
     )
 
     // / Sets a recipe as saved or unsaved.
     suspend fun setSaved(recipe: Recipe, saved: Boolean): Boolean = runCatching {
         when (saved) {
-            true -> supabaseClient.from("saved_recipes").insert(RecipeID(recipe.id.toInt()))
+            true -> supabaseClient.from("saved_recipes").insert(RecipeID(recipe.id))
             false ->
                 supabaseClient
                     .from("saved_recipes")
@@ -256,4 +255,22 @@ object Client {
             avoidedIngredients = avoidedIngredients,
         )
     }
+
+    // Extension function for Client to save new recipes
+    suspend fun Client.saveNewRecipe(recipe: Recipe, savedRecipeIdsManager: PersistenceManager<Set<String>>): Boolean = runCatching {
+        supabaseClient
+            .from("recipes_dup")
+            .insert(recipe)
+    }.fold(
+        onSuccess = {
+            savedRecipeIdsManager.update {
+                this + recipe.id
+            }
+            true
+        },
+        onFailure = { error ->
+            println("Failed to save recipe: ${error.message}")
+            false
+        }
+    )
 }

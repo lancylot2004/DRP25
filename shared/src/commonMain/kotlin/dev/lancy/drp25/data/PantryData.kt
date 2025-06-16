@@ -17,9 +17,9 @@ enum class IngredientType(val displayName: String, val order: Int) {
     MEAT("Meat", 3),
     DAIRY("Dairy", 4),
     FRUIT("Fruit", 5),
-    BAKING_SNACKS("Baking & Snacks", 6), // Combines Grains, Baked Goods, and Snacks
-    CONDIMENTS("Condiments", 7),       // Combines Sauces, Spices, and traditional Condiments
-    LIQUIDS("Liquids", 8)             // Renamed from Beverages
+    BAKING_SNACKS("Baking & Snacks", 6),
+    CONDIMENTS("Condiments", 7),
+    LIQUIDS("Liquids", 8)
 }
 
 data class IngredientItem(

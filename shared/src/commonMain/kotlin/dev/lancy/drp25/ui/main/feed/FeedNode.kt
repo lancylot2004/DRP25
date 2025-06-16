@@ -1,6 +1,10 @@
 package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -90,6 +95,18 @@ class FeedNode(
         val filterPersistence = rememberPersisted("filters") { FilterValues() }
         val filterValues by filterPersistence.state.collectAsState()
 
+        // SnapFlingBehaviour for Slower Swiping, one at a time
+        val defaultSnapFlingBehavior = rememberSnapFlingBehavior(lazyListState = scrollState)
+        val customFlingBehavior = object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val modifiedVelocity = initialVelocity * 0.5f
+                val currentScrollScope = this
+                return defaultSnapFlingBehavior.run {
+                    currentScrollScope.performFling(modifiedVelocity)
+                }
+            }
+        }
+
         LaunchedEffect(this.lifecycleScope) {
             scope.updateRecipes(filterValues) { recipes = it }
         }
@@ -121,7 +138,7 @@ class FeedNode(
                     // Take into account header.
                     .padding(top = Size.IconMedium + Size.Padding),
                 state = scrollState,
-                flingBehavior = rememberSnapFlingBehavior(scrollState),
+                flingBehavior = customFlingBehavior, //rememberSnapFlingBehavior(scrollState),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
