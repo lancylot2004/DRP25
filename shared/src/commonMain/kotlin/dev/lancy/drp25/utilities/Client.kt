@@ -24,6 +24,9 @@ import kotlin.time.Duration.Companion.seconds
 
 internal expect fun createHttpClient(): HttpClient
 
+// Converts a set to a compatible IN list: (A,B,C)
+fun <T> Set<T>.toInList(): String = joinToString(prefix = "(", postfix = ")", separator = ",") { it.toString() }
+
 object Client {
     private val supabaseClient: SupabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY) {
         install(Postgrest)
@@ -56,6 +59,33 @@ object Client {
             filter("macros->protein", FilterOperator.IN, filters.proteinRange.toIntString())
             filter("macros->fat", FilterOperator.IN, filters.fatRange.toIntString())
             filter("macros->carbs", FilterOperator.IN, filters.carbsRange.toIntString())
+
+            // Meal TypesAdd commentMore actions
+            if (filters.selectedMealTypes.isNotEmpty()) {
+                filter(
+                    "mealType",
+                    FilterOperator.IN,
+                    filters.selectedMealTypes.map { it.name }.toSet().toInList()
+                )
+            }
+
+            // Cuisines
+            if (filters.selectedCuisines.isNotEmpty()) {
+                filter(
+                    "cuisine",
+                    FilterOperator.IN,
+                    filters.selectedCuisines.map { it.name }.toSet().toInList()
+                )
+            }
+
+            // Diets
+            if (filters.selectedDiets.isNotEmpty()) {
+                filter(
+                    "diet",
+                    FilterOperator.IN,
+                    filters.selectedDiets.map { it.name }.toSet().toInList()
+                )
+            }
         }
     }
 
@@ -269,7 +299,10 @@ object Client {
         return d[str1.length][str2.length]
     }
 
-    fun fuzzyMatch(queryToken: String, recipeToken: String, threshold: Int = 2): Boolean {
+    fun fuzzyMatch(queryToken: String, recipeToken: String, threshold: Int = 1): Boolean {
+        if (queryToken.length <= 3 || recipeToken.length <= 3) {
+            return queryToken == recipeToken // require exact match for short words
+        }
         if (queryToken == recipeToken) return true
         if (recipeToken.contains(queryToken) || queryToken.contains(recipeToken)) return true
         if (kotlin.math.abs(queryToken.length - recipeToken.length) > 2) return false
@@ -284,7 +317,7 @@ object Client {
             .toList()
     }
 
-    fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 2): List<Recipe> {
+    fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 0): List<Recipe> {
         val tokens = tokenizeQuery(query)
         val positiveTokens = tokens.filterNot { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
         val negativeTokens = tokens.filter { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
@@ -293,10 +326,16 @@ object Client {
         return recipes.filter { recipe ->
             val hasNegative = negativeTokens.any { token ->
                 recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    fuzzyMatch(token, word, threshold)
+                    if (fuzzyMatch(token, word, threshold)) {
+                        println("NEGATIVE MATCH: token='$token' matched word='$word' in recipe name='${recipe.name}'")
+                        true
+                    } else false
                 } || recipe.ingredients.any { ingredient ->
                     ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        fuzzyMatch(token, word, threshold)
+                        if (fuzzyMatch(token, word, threshold)) {
+                            println("NEGATIVE MATCH: token='$token' matched word='$word' in ingredient='${ingredient.name}'")
+                            true
+                        } else false
                     }
                 }
             }
@@ -306,10 +345,16 @@ object Client {
 
             positiveTokens.any { token ->
                 recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    fuzzyMatch(token, word, threshold)
+                    if (fuzzyMatch(token, word, threshold)) {
+                        println("POSITIVE MATCH: token='$token' matched word='$word' in recipe name='${recipe.name}'")
+                        true
+                    } else false
                 } || recipe.ingredients.any { ingredient ->
                     ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        fuzzyMatch(token, word, threshold)
+                        if (fuzzyMatch(token, word, threshold)) {
+                            println("POSITIVE MATCH: token='$token' matched word='$word' in ingredient='${ingredient.name}'")
+                            true
+                        } else false
                     }
                 }
             }
