@@ -382,14 +382,17 @@ class RecipeNode(
                                 toMutableMap().apply { put(today.toString(), currentCount + 1) }
                             }
 
-                            if (userComment.isNotBlank()) {
-                                Client.submitComment(
-                                    recipeId = recipe.id,
-                                    userName = "Guest User",
-                                    commentText = userComment,
-                                    rating = userRating,
-                                )
-                            }
+                            Client.submitComment(
+                                recipeId = recipe.id,
+                                userName = "Guest User",
+                                commentText = userComment,
+                                rating = userRating,
+                            )
+
+                            Client.updateRecipeRating(
+                                recipeId = recipe.id,
+                                newRating = userRating.toFloat(),
+                            )
 
                             onSuccess(userRating)
                         }

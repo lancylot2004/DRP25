@@ -18,9 +18,7 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.request.get
-import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 
@@ -138,15 +136,6 @@ object Client {
         val recipe_id: String,
     )
 
-    // Fetch product details from Open Food Facts API using barcode
-    suspend fun fetchProduct(barcode: String) {
-        coroutineScope {
-            println(barcode)
-            val result = httpClient.get("https://world.openfoodfacts.org/api/v2/product/$barcode").body<String>()
-            println(result)
-        }
-    }
-
     suspend fun searchRecipes(query: String): List<Recipe> {
         val filters = parseQueryToFilters(query)
         return fetchRecipes(filters)
@@ -180,7 +169,7 @@ object Client {
         }
 
         // Rating parsing
-        val ratingRegex = Regex("""(?:at least|minimum|over|more than|>=|>|)\s*(\d(?:\.\d)?)\s*(?:stars?)""")
+        val ratingRegex = Regex("""(?:at least|minimum|over|more than|>=|>|)\s*(\d(?:\.\d)?)\s*stars?""")
         var rating = 3.0f
         ratingRegex.find(q)?.let {
             rating = it.groupValues[1].toFloatOrNull() ?: rating
