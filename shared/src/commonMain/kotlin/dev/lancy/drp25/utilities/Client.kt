@@ -59,7 +59,7 @@ object Client {
             filter("macros->fat", FilterOperator.IN, filters.fatRange.toIntString())
             filter("macros->carbs", FilterOperator.IN, filters.carbsRange.toIntString())
 
-            // Meal TypesAdd commentMore actions
+            // Apply meal type filters
             if (filters.selectedMealTypes.isNotEmpty()) {
                 filter(
                     "mealType",
