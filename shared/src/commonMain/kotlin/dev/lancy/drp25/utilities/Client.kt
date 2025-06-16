@@ -4,7 +4,6 @@ import dev.lancy.drp25.data.Cuisine
 import dev.lancy.drp25.data.Diet
 import dev.lancy.drp25.data.FilterRanges
 import dev.lancy.drp25.data.FilterValues
-import dev.lancy.drp25.data.Ingredients
 import dev.lancy.drp25.data.MealType
 import dev.lancy.drp25.data.Recipe
 import io.github.jan.supabase.SupabaseClient
@@ -174,7 +173,7 @@ object Client {
         return filtered.ifEmpty { queriedRecipes }
     }
 
-    fun parseQueryToFilters(query: String): Pair<FilterValues, String> {
+    private fun parseQueryToFilters(query: String): Pair<FilterValues, String> {
         var q = query.lowercase()
 
         // Time parsing
@@ -205,7 +204,7 @@ object Client {
         }
 
         // Rating parsing
-        val ratingRegex = Regex("""(?:at least|minimum|over|more than|>=|>|)\s*(\d(?:\.\d)?)\s*(?:stars?)""")
+        val ratingRegex = Regex("""(?:at least|minimum|over|more than|>=|>|)\s*(\d(?:\.\d)?)\s*stars?""")
         var rating = 3.0f
         ratingRegex.find(q)?.let {
             rating = it.groupValues[1].toFloatOrNull() ?: rating
@@ -299,7 +298,7 @@ object Client {
         return d[str1.length][str2.length]
     }
 
-    fun fuzzyMatch(queryToken: String, recipeToken: String, threshold: Int = 1): Boolean {
+    private fun fuzzyMatch(queryToken: String, recipeToken: String, threshold: Int = 1): Boolean {
         if (queryToken.length <= 3 || recipeToken.length <= 3) {
             return queryToken == recipeToken // require exact match for short words
         }
@@ -309,7 +308,7 @@ object Client {
         return levenshtein(queryToken, recipeToken) <= threshold
     }
 
-    fun tokenizeQuery(query: String): List<String> {
+    private fun tokenizeQuery(query: String): List<String> {
         val regex = Regex("""(?:no |not |-)?\w+""")
         return regex.findAll(query.lowercase())
             .map { it.value.trim() }
@@ -317,7 +316,7 @@ object Client {
             .toList()
     }
 
-    fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 0): List<Recipe> {
+    private fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 0): List<Recipe> {
         val tokens = tokenizeQuery(query)
         val positiveTokens = tokens.filterNot { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
         val negativeTokens = tokens.filter { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
@@ -326,16 +325,10 @@ object Client {
         return recipes.filter { recipe ->
             val hasNegative = negativeTokens.any { token ->
                 recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    if (fuzzyMatch(token, word, threshold)) {
-                        println("NEGATIVE MATCH: token='$token' matched word='$word' in recipe name='${recipe.name}'")
-                        true
-                    } else false
+                    fuzzyMatch(token, word, threshold)
                 } || recipe.ingredients.any { ingredient ->
                     ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        if (fuzzyMatch(token, word, threshold)) {
-                            println("NEGATIVE MATCH: token='$token' matched word='$word' in ingredient='${ingredient.name}'")
-                            true
-                        } else false
+                        fuzzyMatch(token, word, threshold)
                     }
                 }
             }
