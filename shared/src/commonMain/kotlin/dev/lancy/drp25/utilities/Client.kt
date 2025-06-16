@@ -338,16 +338,10 @@ object Client {
 
             positiveTokens.any { token ->
                 recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    if (fuzzyMatch(token, word, threshold)) {
-                        println("POSITIVE MATCH: token='$token' matched word='$word' in recipe name='${recipe.name}'")
-                        true
-                    } else false
+                    fuzzyMatch(token, word, threshold)
                 } || recipe.ingredients.any { ingredient ->
                     ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        if (fuzzyMatch(token, word, threshold)) {
-                            println("POSITIVE MATCH: token='$token' matched word='$word' in ingredient='${ingredient.name}'")
-                            true
-                        } else false
+                        fuzzyMatch(token, word, threshold)
                     }
                 }
             }
