@@ -10,7 +10,6 @@ import com.bumble.appyx.components.backstack.BackStack
 import com.bumble.appyx.components.spotlight.Spotlight
 import dev.lancy.drp25.ui.shared.NavTarget
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.descriptors.element
@@ -28,9 +27,6 @@ fun TextStyle.height(): Dp {
     val lineHeight = lineHeight.takeIf { it.isSpecified } ?: fontSize
     return with(density) { lineHeight.toDp() }
 }
-
-fun <T> ClosedFloatingPointRange<T>.intSteps(): Int where T : Comparable<T>, T : Number =
-    endInclusive.toDouble().toInt() - start.toDouble().toInt() - 1
 
 fun <T : NavTarget> BackStack<T>.currentTarget(): T =
     this.model.output.value.currentTargetState.active.interactionTarget
@@ -55,41 +51,34 @@ object ClosedFloatRangeSerializer : KSerializer<ClosedFloatingPointRange<Float>>
     }
 
     override fun serialize(encoder: Encoder, value: ClosedFloatingPointRange<Float>) {
-        println("SERIALIZER: Serializing $value")
         encoder.encodeStructure(descriptor) {
             encodeFloatElement(descriptor, 0, value.start)
             encodeFloatElement(descriptor, 1, value.endInclusive)
-            println("SERIALIZER: Encoded start=${value.start}, endInclusive=${value.endInclusive}")
         }
     }
 
-    override fun deserialize(decoder: Decoder): ClosedFloatingPointRange<Float> {
-        return decoder.decodeStructure(descriptor) {
-            var start: Float? = null
-            var endInclusive: Float? = null
+    override fun deserialize(decoder: Decoder): ClosedFloatingPointRange<Float> = decoder.decodeStructure(descriptor) {
+        var start: Float? = null
+        var endInclusive: Float? = null
 
-            while (true) {
-                when (val index = decodeElementIndex(descriptor)) {
-                    0 -> {
-                        start = decodeFloatElement(descriptor, 0)
-                        println("SERIALIZER: Decoded start=$start")
-                    }
-                    1 -> {
-                        endInclusive = decodeFloatElement(descriptor, 1)
-                        println("SERIALIZER: Decoded endInclusive=$endInclusive")
-                    }
-                    CompositeDecoder.DECODE_DONE -> break
-                    else -> error("Unexpected index: $index")
+        while (true) {
+            when (val index = decodeElementIndex(descriptor)) {
+                0 -> {
+                    start = decodeFloatElement(descriptor, 0)
                 }
+                1 -> {
+                    endInclusive = decodeFloatElement(descriptor, 1)
+                }
+                CompositeDecoder.DECODE_DONE -> break
+                else -> error("Unexpected index: $index")
             }
-
-            requireNotNull(start) { "Missing start value" }
-            requireNotNull(endInclusive) { "Missing endInclusive value" }
-
-            val result = start..endInclusive
-            println("SERIALIZER: Deserialized result=$result")
-            result
         }
+
+        requireNotNull(start) { "Missing start value" }
+        requireNotNull(endInclusive) { "Missing endInclusive value" }
+
+        val result = start..endInclusive
+        result
     }
 }
 
