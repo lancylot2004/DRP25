@@ -18,7 +18,9 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.get
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 
@@ -345,5 +347,14 @@ object Client {
     }.getOrElse { error ->
         println("Failed to update recipe rating for $recipeId: ${error.message}")
         false
+    }
+
+    // Fetch product details from Open Food Facts API using barcode
+    suspend fun fetchProduct(barcode: String) {
+        coroutineScope {
+            println(barcode)
+            val result = httpClient.get("https://world.openfoodfacts.org/api/v2/product/$barcode").body<String>()
+            println(result)
+        }
     }
 }

@@ -18,35 +18,32 @@ import dev.lancy.drp25.data.getDefaultIngredients
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import kotlinx.coroutines.runBlocking
 
 class PantryNode(
     nodeContext: NodeContext,
     parent: MainNode,
 ) : LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
-
     @Composable
     override fun Content(modifier: Modifier) {
         var showScanner by remember { mutableStateOf(false) }
 
         if (showScanner) {
-            QRScannerView(
-                onNavigate = { scannedCode ->
-                    // Handle the scanned barcode
-                    println("Scanned barcode: $scannedCode")
-                    // You can add logic here to:
-                    // 1. Look up the product by barcode
-                    // 2. Add it to ingredients list
-                    // 3. Close the scanner
-                    showScanner = false
-                }
-            )
+            QRScannerView { scannedCode ->
+                // Handle the scanned barcode
+                println("Scanned barcode: $scannedCode")
+                showScanner = false
+                val product = runBlocking { Client.fetchProduct(scannedCode) }
+                print(product)
+            }
         } else {
             PantryScreen(
                 modifier = modifier,
-                onScanClick = { showScanner = true }
+                onScanClick = { showScanner = true },
             )
         }
     }
@@ -56,7 +53,7 @@ class PantryNode(
 @Composable
 fun PantryScreen(
     modifier: Modifier = Modifier,
-    onScanClick: () -> Unit = {}
+    onScanClick: () -> Unit = {},
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     var showUtensilsScreen by remember { mutableStateOf(false) }
@@ -75,24 +72,24 @@ fun PantryScreen(
                         style = Typography.titleMedium,
                         color = Color.White,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 },
                 actions = {
                     IconButton(
-                        onClick = onScanClick
+                        onClick = onScanClick,
                     ) {
                         Icon(
                             imageVector = Lucide.Scan,
                             contentDescription = "Scan ingredient",
                             tint = Color.White,
-                            modifier = Modifier.size(Size.IconMedium)
+                            modifier = Modifier.size(Size.IconMedium),
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
+                    containerColor = Color.Transparent,
+                ),
             )
         },
         bottomBar = {
@@ -124,7 +121,7 @@ fun PantryScreen(
             UtensilsScreen(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(paddingValues),
             )
         } else {
             IngredientsNode(

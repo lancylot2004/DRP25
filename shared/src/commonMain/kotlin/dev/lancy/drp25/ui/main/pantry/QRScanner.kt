@@ -59,6 +59,7 @@ fun QRScannerView(onNavigate: (String) -> Unit) {
                 ScannerWithPermissions(
                     modifier = Modifier.fillMaxSize(),
                     onScanned = {
+                        onNavigate(it)
                         qrCode = it
                         true
                     },
