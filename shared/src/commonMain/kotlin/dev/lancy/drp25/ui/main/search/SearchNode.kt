@@ -2,6 +2,7 @@ package dev.lancy.drp25.ui.main.search
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
@@ -59,11 +62,20 @@ class SearchNode(
         val previousSearchesPersistence = rememberPersisted("previous_searches") { emptyList<String>() }
         val previousSearches by previousSearchesPersistence.state.collectAsState()
 
-        Column(modifier = Modifier.fillMaxSize()) {
+        val keyboardController = LocalSoftwareKeyboardController.current
+        val hideKeyboardModifier = Modifier.pointerInput(Unit) {
+            detectTapGestures(onTap = { keyboardController?.hide() })
+        }
+
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .then(hideKeyboardModifier)
+        ) {
             SearchBar(
                 query = queryState.value,
                 onQueryChange = { queryState.value = it },
                 onSearch = {
+                    keyboardController?.hide()
                     val query = queryState.value.trim()
                     if (query.isEmpty()) {
                         searchPerformed = false
