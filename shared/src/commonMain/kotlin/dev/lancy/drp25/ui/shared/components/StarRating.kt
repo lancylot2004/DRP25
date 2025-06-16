@@ -30,12 +30,14 @@ fun StarRating(rating: Float, modifier: Modifier = Modifier, starSize: Dp = Size
 
             Box(modifier = Modifier.size(starSize)) {
                 // Background empty star
-                Icon(
-                    imageVector = Lucide.Star,
-                    contentDescription = null,
-                    tint = Color.LightGray,
-                    modifier = Modifier.fillMaxSize(),
-                )
+                if (fillRatio == 1f) {
+                    Icon(
+                        imageVector = Lucide.Star,
+                        contentDescription = null,
+                        tint = Color.LightGray,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
                 // Foreground gold star clipped to fillRatio
                 Icon(
@@ -48,12 +50,11 @@ fun StarRating(rating: Float, modifier: Modifier = Modifier, starSize: Dp = Size
                         .graphicsLayer {
                             clip = true
                             shape = RectangleShape
-                        }
-                        .drawWithContent {
+                        }.drawWithContent {
                             clipRect(right = size.width * fillRatio) {
                                 this@drawWithContent.drawContent()
                             }
-                        }
+                        },
                 )
             }
         }
