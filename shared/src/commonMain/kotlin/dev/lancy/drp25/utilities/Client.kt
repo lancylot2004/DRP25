@@ -316,35 +316,39 @@ object Client {
             .toList()
     }
 
+    private fun buildTokenIndex(recipes: List<Recipe>): Map<String, MutableSet<Recipe>> {
+        val index = mutableMapOf<String, MutableSet<Recipe>>()
+        recipes.forEach { recipe ->
+            val tokens = (recipe.name.lowercase().split("\\s+".toRegex()) +
+                    recipe.ingredients.flatMap { it.name.lowercase().split("\\s+".toRegex()) })
+            tokens.forEach { token ->
+                if (!index.containsKey(token)) {
+                    index[token] = mutableSetOf()
+                }
+                index[token]!!.add(recipe)
+            }
+        }
+        return index
+    }
+
     private fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 0): List<Recipe> {
         val tokens = tokenizeQuery(query)
-        val positiveTokens = tokens.filterNot { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
-        val negativeTokens = tokens.filter { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
-            .map { it.removePrefix("-").removePrefix("no ").removePrefix("not ") }
-
+        val positiveTokens =
+            tokens.filterNot { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
+        val negativeTokens =
+            tokens.filter { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
+                .map { it.removePrefix("-").removePrefix("no ").removePrefix("not ") }
+        val tokenIndex = buildTokenIndex(recipes)
+        val negativeMatches = negativeTokens.flatMap { token ->
+            tokenIndex[token] ?: emptySet()
+        }.toSet()
+        val positiveMatches = positiveTokens.flatMap { token ->
+            tokenIndex[token] ?: emptySet()
+        }.toSet()
         return recipes.filter { recipe ->
-            val hasNegative = negativeTokens.any { token ->
-                recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    fuzzyMatch(token, word, threshold)
-                } || recipe.ingredients.any { ingredient ->
-                    ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        fuzzyMatch(token, word, threshold)
-                    }
-                }
-            }
-            if (hasNegative) return@filter false
-
+            if (recipe in negativeMatches) return@filter false
             if (positiveTokens.isEmpty()) return@filter true
-
-            positiveTokens.any { token ->
-                recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
-                    fuzzyMatch(token, word, threshold)
-                } || recipe.ingredients.any { ingredient ->
-                    ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
-                        fuzzyMatch(token, word, threshold)
-                    }
-                }
-            }
+            recipe in positiveMatches
         }
     }
 }
