@@ -138,12 +138,14 @@ object Client {
     }
 
     suspend fun searchRecipes(query: String): List<Recipe> {
-        val filters = parseQueryToFilters(query)
-        return fetchRecipes(filters)
+        val (filters, reducedQuery) = parseQueryToFilters(query)
+        val queriedRecipes = fetchRecipes(filters)
+        val filtered = searchIngredients(reducedQuery, queriedRecipes)
+        return filtered.ifEmpty { queriedRecipes }
     }
 
-    fun parseQueryToFilters(query: String): FilterValues {
-        val q = query.lowercase()
+    fun parseQueryToFilters(query: String): Pair<FilterValues, String> {
+        var q = query.lowercase()
 
         // Time parsing
         val underRegex = Regex("""(?:under|less than|<)\s*(\d+)\s*(minutes|min|mins)""")
@@ -156,16 +158,19 @@ object Client {
                 val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.start
                 val end = match.groupValues[2].toFloatOrNull() ?: FilterRanges.TIME_RANGE.endInclusive
                 timeRange = start..end
+                q = q.replace(match.value, " ")
             }
             underRegex.containsMatchIn(q) -> {
                 val match = underRegex.find(q)!!
                 val end = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.endInclusive
                 timeRange = FilterRanges.TIME_RANGE.start..end
+                q = q.replace(match.value, " ")
             }
             overRegex.containsMatchIn(q) -> {
                 val match = overRegex.find(q)!!
                 val start = match.groupValues[1].toFloatOrNull() ?: FilterRanges.TIME_RANGE.start
                 timeRange = start..FilterRanges.TIME_RANGE.endInclusive
+                q = q.replace(match.value, " ")
             }
         }
 
@@ -174,10 +179,10 @@ object Client {
         var rating = 3.0f
         ratingRegex.find(q)?.let {
             rating = it.groupValues[1].toFloatOrNull() ?: rating
+            q = q.replace(it.value, " ")
         }
 
-        // Calories, protein, fat, carbs parsing
-        fun parseRange(q: String, key: String, default: ClosedFloatingPointRange<Float>): ClosedFloatingPointRange<Float> {
+        fun parseRange(q: String, key: String, default: ClosedFloatingPointRange<Float>): Pair<ClosedFloatingPointRange<Float>, String> {
             val under = Regex("""(?:under|less than|<)\s*(\d+)\s*(g?\s*$key)""")
             val over = Regex("""(?:over|more than|greater than|>)\s*(\d+)\s*(g?\s*$key)""")
             val between = Regex("""(\d+)\s*(?:-|to|–)\s*(\d+)\s*(g?\s*$key)""")
@@ -186,60 +191,53 @@ object Client {
                     val m = between.find(q)!!
                     val s = m.groupValues[1].toFloatOrNull() ?: default.start
                     val e = m.groupValues[2].toFloatOrNull() ?: default.endInclusive
-                    s..e
+                    val newQuery = q.replace(m.value, " ")
+                    Pair(s..e, newQuery)
                 }
                 under.containsMatchIn(q) -> {
                     val m = under.find(q)!!
                     val e = m.groupValues[1].toFloatOrNull() ?: default.endInclusive
-                    default.start..e
+                    val newQuery = q.replace(m.value, " ")
+                    Pair(default.start..e, newQuery)
                 }
                 over.containsMatchIn(q) -> {
                     val m = over.find(q)!!
                     val s = m.groupValues[1].toFloatOrNull() ?: default.start
-                    s..default.endInclusive
+                    val newQuery = q.replace(m.value, " ")
+                    Pair(s..default.endInclusive, newQuery)
                 }
-                else -> default
+                else -> Pair(default, q)
             }
         }
-        val calorieRange = parseRange(q, "cal(?:ories|s)?", FilterRanges.CALORIE_RANGE)
-        val proteinRange = parseRange(q, "protein", FilterRanges.PROTEIN_RANGE)
-        val fatRange = parseRange(q, "fat", FilterRanges.FAT_RANGE)
-        val carbsRange = parseRange(q, "carbs?", FilterRanges.CARBS_RANGE)
+
+        val (calorieRange, q1) = parseRange(q, "cal(?:ories|s)?", FilterRanges.CALORIE_RANGE)
+        val (proteinRange, q2) = parseRange(q1, "protein", FilterRanges.PROTEIN_RANGE)
+        val (fatRange, q3) = parseRange(q2, "fat", FilterRanges.FAT_RANGE)
+        val (carbsRange, q4) = parseRange(q3, "carbs?", FilterRanges.CARBS_RANGE)
+        q = q4
 
         // Diets
         val diets = Diet.entries
-            .filter { d ->
-                val name = d.name.lowercase().replace("_", " ")
-                name in q || d.toString().lowercase() in q
+            .filter { diet ->
+                val found = q.contains(diet.name.lowercase())
+                if (found) q = q.replace(diet.name.lowercase(), " ")
+                found
             }.toSet()
 
         // Meal Types
         val mealTypes = MealType.entries
-            .filter { m ->
-                val name = m.name.lowercase().replace("_", " ")
-                name in q || m.toString().lowercase() in q
+            .filter { mealType ->
+                val found = q.contains(mealType.name.lowercase())
+                if (found) q = q.replace(mealType.name.lowercase(), " ")
+                found
             }.toSet()
 
         // Cuisines
         val cuisines = Cuisine.entries
-            .filter { c ->
-                val name = c.name.lowercase().replace("_", " ")
-                name in q || c.toString().lowercase() in q
-            }.toSet()
-
-        // Included/Avoided Ingredients
-        val words = q.split(Regex("""\W+"""))
-        val avoidedIngredients = Ingredients.entries
-            .filter { ing ->
-                Regex("""(?:no|without|avoid)\s+${Regex.escape(ing.name.lowercase())}""").containsMatchIn(q) ||
-                    Regex("""(?:no|without|avoid)\s+${Regex.escape(ing.displayName.lowercase())}""").containsMatchIn(q)
-            }.toSet()
-
-        val includedIngredients = Ingredients.entries
-            .filter { ing ->
-                // Only include if not in avoided
-                !avoidedIngredients.contains(ing) &&
-                    words.any { it == ing.name.lowercase() || it == ing.displayName.lowercase() }
+            .filter { cuisine ->
+                val found = q.contains(cuisine.name.lowercase())
+                if (found) q = q.replace(cuisine.name.lowercase(), " ")
+                found
             }.toSet()
 
         return FilterValues(
@@ -251,9 +249,72 @@ object Client {
             rating = rating,
             selectedMealTypes = mealTypes,
             selectedCuisines = cuisines,
-            selectedDiets = diets,
-            includedIngredients = includedIngredients,
-            avoidedIngredients = avoidedIngredients,
-        )
+            selectedDiets = diets
+        ) to q.trim()
+    }
+
+    private fun levenshtein(str1: String, str2: String): Int {
+        val d = Array(str1.length + 1) { IntArray(str2.length + 1) }
+
+        for (i in 0..str1.length) d[i][0] = i
+        for (j in 0..str2.length) d[0][j] = j
+
+        for (i in 1..str1.length) {
+            for (j in 1..str2.length) {
+                val cost = if (str1[i - 1] == str2[j - 1]) 0 else 1
+                d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+            }
+        }
+
+        return d[str1.length][str2.length]
+    }
+
+    fun fuzzyMatch(queryToken: String, recipeToken: String, threshold: Int = 2): Boolean {
+        if (queryToken == recipeToken) return true
+        if (recipeToken.contains(queryToken) || queryToken.contains(recipeToken)) return true
+        if (kotlin.math.abs(queryToken.length - recipeToken.length) > 2) return false
+        return levenshtein(queryToken, recipeToken) <= threshold
+    }
+
+    fun tokenizeQuery(query: String): List<String> {
+        val regex = Regex("""(?:no |not |-)?\w+""")
+        return regex.findAll(query.lowercase())
+            .map { it.value.trim() }
+            .filter { it.isNotEmpty() }
+            .toList()
+    }
+
+    fun searchIngredients(query: String, recipes: List<Recipe>, threshold: Int = 2): List<Recipe> {
+        val tokens = tokenizeQuery(query)
+        val positiveTokens = tokens.filterNot { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
+        val negativeTokens = tokens.filter { it.startsWith("-") || it.startsWith("no ") || it.startsWith("not ") }
+            .map { it.removePrefix("-").removePrefix("no ").removePrefix("not ") }
+
+        return recipes.filter { recipe ->
+            val hasNegative = negativeTokens.any { token ->
+                recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
+                    fuzzyMatch(token, word, threshold)
+                } || recipe.ingredients.any { ingredient ->
+                    ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
+                        fuzzyMatch(token, word, threshold)
+                    }
+                }
+            }
+            if (hasNegative) return@filter false
+
+            if (positiveTokens.isEmpty()) return@filter true
+
+            positiveTokens.any { token ->
+                recipe.name.lowercase().split("\\s+".toRegex()).any { word ->
+                    fuzzyMatch(token, word, threshold)
+                } || recipe.ingredients.any { ingredient ->
+                    ingredient.name.lowercase().split("\\s+".toRegex()).any { word ->
+                        fuzzyMatch(token, word, threshold)
+                    }
+                }
+            }
+        }
     }
 }
+
+
