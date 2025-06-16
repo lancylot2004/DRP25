@@ -169,7 +169,7 @@ class RecipeNode(
                         containerColor = ColourScheme.primaryContainer.copy(alpha = 0.4f),
                         contentColor = ColourScheme.onPrimaryContainer,
                     ),
-                ) { Text("Leave a Rating") }
+                ) { Text("Leave a Review") }
 
                 Button(
                     onClick = { showComments = true },
@@ -334,6 +334,15 @@ class RecipeNode(
                             color = ColourScheme.onSurface,
                         )
 
+                        Text(
+                            "5 stars: One of the best recipes I've ever tried! A must!\n" +
+                                "4 stars: Great recipe, but could use a few tweaks. Would cook again.\n" +
+                                "3 stars: Nothing special, but decent.\n" +
+                                "2 stars: Did not like it. Would not recommend.\n" +
+                                "1 star: Avoid at all costs!\n",
+                            color = ColourScheme.onSurfaceVariant,
+                        )
+
                         InteractiveStarRating(
                             rating = userRating,
                             onRatingChange = { userRating = it },
@@ -428,7 +437,7 @@ class RecipeNode(
                 verticalArrangement = Arrangement.spacedBy(Size.Padding),
             ) {
                 Text(
-                    "Comments",
+                    "Reviews",
                     style = Typography.titleLarge,
                     color = ColourScheme.primary,
                 )
