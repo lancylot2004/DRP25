@@ -78,7 +78,7 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
     val savedIds by manager.state.collectAsState(initial = emptySet())
     val isSaved = recipe.id in savedIds
 
-    // 1️Local flag for the pop animation
+    // Local flag for the pop animation
     var showPopHeart by remember { mutableStateOf(false) }
     val popScale by animateFloatAsState(
         targetValue = if (showPopHeart) 1.4f else 0f,

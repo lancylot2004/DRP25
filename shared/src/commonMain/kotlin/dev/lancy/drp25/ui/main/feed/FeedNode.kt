@@ -9,6 +9,7 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,6 +45,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
 import dev.lancy.drp25.data.FilterValues
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.rememberFiltersManager
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
@@ -53,6 +55,7 @@ import dev.lancy.drp25.utilities.ScreenSize
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.rememberDietaryPreferencesManager
 import dev.lancy.drp25.utilities.rememberPersisted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,8 +95,8 @@ class FeedNode(
 
         var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
 
-        val filterPersistence = rememberPersisted("filters") { FilterValues() }
-        val filterValues by filterPersistence.state.collectAsState()
+        val filtersManager = rememberFiltersManager()
+        val filterValues by filtersManager.state.collectAsState()
 
         // SnapFlingBehaviour for Slower Swiping, one at a time
         val defaultSnapFlingBehavior = rememberSnapFlingBehavior(lazyListState = scrollState)
@@ -133,10 +136,7 @@ class FeedNode(
             }
 
             LazyRow(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Take into account header.
-                    .padding(top = Size.IconMedium + Size.Padding),
+                modifier = Modifier.fillMaxSize().padding(top = Size.IconMedium + Size.Padding),
                 state = scrollState,
                 flingBehavior = customFlingBehavior, //rememberSnapFlingBehavior(scrollState),
                 horizontalArrangement = Arrangement.Center,
@@ -166,21 +166,19 @@ class FeedNode(
 
             AnimatedVisibility(sheetState.isVisible) {
                 ModalBottomSheet(
-                    modifier = Modifier
-                        .fillMaxHeight(Size.ModalSheetHeight)
-                        .align(Alignment.BottomCenter),
+                    modifier = Modifier.fillMaxHeight(Size.ModalSheetHeight).align(Alignment.BottomCenter),
                     shape = Shape.RoundedLarge,
                     sheetState = sheetState,
                     onDismissRequest = {
                         scope.launch {
                             sheetState.hide()
-                            scope.updateRecipes(filterPersistence.state.value) { recipes = it }
+                            scope.updateRecipes(filtersManager.state.value) { recipes = it }
                         }
                     },
                     dragHandle = {},
                 ) {
                     Column {
-                        FilterContent(filterPersistence)
+                        FilterContent(filtersManager)
                     }
                 }
             }

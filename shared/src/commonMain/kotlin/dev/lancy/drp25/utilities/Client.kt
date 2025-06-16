@@ -1,5 +1,6 @@
 package dev.lancy.drp25.utilities
 
+import dev.lancy.drp25.data.Comment
 import dev.lancy.drp25.data.Cuisine
 import dev.lancy.drp25.data.Diet
 import dev.lancy.drp25.data.FilterRanges
@@ -7,11 +8,13 @@ import dev.lancy.drp25.data.FilterValues
 import dev.lancy.drp25.data.Ingredients
 import dev.lancy.drp25.data.MealType
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.RecipeRatingUpdate
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.PostgrestFilterDSL
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
 import io.ktor.client.HttpClient
@@ -28,7 +31,7 @@ object Client {
     private val supabaseClient: SupabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY) {
         install(Postgrest)
 
-        requestTimeout = 1.seconds
+        requestTimeout = 3.seconds
     }
 
     private val httpClient = createHttpClient()
@@ -48,6 +51,46 @@ object Client {
 
             // Apply minimum rating filter
             filter("rating", FilterOperator.GTE, filters.rating)
+
+            // Apply meal type filter
+            if (filters.selectedMealTypes.isNotEmpty()) {
+                val mealTypeValues = filters.selectedMealTypes.joinToString(",") { it.name }
+                filter("mealType", FilterOperator.IN, "(${mealTypeValues})")
+            }
+
+            // Apply cuisine filter
+            if (filters.selectedCuisines.isNotEmpty()) {
+                val cuisineValues = filters.selectedCuisines.joinToString(",") { it.name }
+                filter("cuisine", FilterOperator.IN, "(${cuisineValues})")
+            }
+
+            // Apply diet filter with hierarchy logic
+            if (filters.selectedDiets.isNotEmpty()) {
+                val expandedDiets = mutableSetOf<String>()
+
+                filters.selectedDiets.forEach { selectedDiet ->
+                    when (selectedDiet) {
+                        Diet.VEGETARIAN -> {
+                            expandedDiets.add(Diet.VEGETARIAN.name)
+                            expandedDiets.add(Diet.VEGAN.name)
+                        }
+                        Diet.DAIRY_FREE -> {
+                            expandedDiets.add(Diet.DAIRY_FREE.name)
+                            expandedDiets.add(Diet.VEGAN.name)
+                        }
+                        Diet.LOW_CARB -> {
+                            expandedDiets.add(Diet.LOW_CARB.name)
+                            expandedDiets.add(Diet.KETO.name)
+                        }
+                        else -> {
+                            expandedDiets.add(selectedDiet.name)
+                        }
+                    }
+                }
+
+                val dietValues = expandedDiets.joinToString(",")
+                filter("diet", FilterOperator.IN, "(${dietValues})")
+            }
 
             // Apply calorie range filter
             filter("calories", FilterOperator.IN, filters.calorieRange.toIntString())
@@ -91,43 +134,12 @@ object Client {
         return fetchRecipes().filter { savedRecipeIds.contains(it.id) }
     }
 
-    // / Returns whether a recipe is saved.
-    suspend fun isSavedRecipe(recipe: Recipe): Boolean = runCatching {
-        supabaseClient
-            .from("saved_recipes")
-            .select { filter { filter("recipe_id", FilterOperator.EQ, recipe.id) } }
-            .decodeSingleOrNull<Unit>() != null
-    }.fold(
-        onSuccess = ::identity,
-        onFailure = { error ->
-            println("Failed to check saved recipe: ${error.message}")
-            false
-        },
-    )
-
     @Serializable
     private data class RecipeID(
         val recipe_id: String
     )
 
-    // / Sets a recipe as saved or unsaved.
-    suspend fun setSaved(recipe: Recipe, saved: Boolean): Boolean = runCatching {
-        when (saved) {
-            true -> supabaseClient.from("saved_recipes").insert(RecipeID(recipe.id))
-            false ->
-                supabaseClient
-                    .from("saved_recipes")
-                    .delete { filter { eq("recipe_id", recipe.id) } }
-        }
-    }.fold(
-        onSuccess = { true },
-        onFailure = { error ->
-            println("Failed to set saved recipe: ${error.message}")
-            false
-        },
-    )
-
-    // / Fetch product details from Open Food Facts API using barcode
+    // Fetch product details from Open Food Facts API using barcode
     suspend fun fetchProduct(barcode: String) {
         coroutineScope {
             println(barcode)
@@ -273,4 +285,69 @@ object Client {
             false
         }
     )
+
+    // Submit a comment to Database
+    suspend fun submitComment(recipeId: String, userName: String, commentText: String, parentCommentId: String? = null): Boolean = runCatching {
+        val newComment = Comment(
+            recipe_id = recipeId,
+            user_name = userName,
+            comment_text = commentText,
+            parent_comment_id = parentCommentId
+        )
+        supabaseClient.from("comments").insert(newComment)
+        true
+    }.getOrElse { error ->
+        println("Failed to submit comment: ${error.message}")
+        false
+    }
+
+    // Fetch comments from recipes
+    suspend fun fetchCommentsForRecipe(recipeId: String): List<Comment> = runCatching {
+        supabaseClient.from("comments")
+            .select {
+                filter { eq("recipe_id", recipeId) }
+                order("created_at", order = Order.ASCENDING) // Order by date, oldest first
+            }
+            .decodeList<Comment>()
+    }.getOrElse { error ->
+        println("Failed to fetch comments for recipe $recipeId: ${error.message}")
+        emptyList()
+    }
+
+    // Update recipe rating
+    suspend fun updateRecipeRating(recipeId: String, newRating: Float): Boolean = runCatching {
+        // 1. Fetch the current recipe to get existing rating and numRatings
+        val currentRecipe = supabaseClient.from("recipes_dup")
+            .select {
+                filter { eq("id", recipeId) }
+                limit(1)
+            }
+            .decodeSingleOrNull<Recipe>()
+
+        if (currentRecipe == null) {
+            println("Recipe with ID $recipeId not found for rating update.")
+            return false
+        }
+
+        // 2. Calculate the new average rating
+        val currentTotalRating = currentRecipe.rating * currentRecipe.numRatings
+        val newNumRatings = currentRecipe.numRatings + 1
+        val updatedRating = (currentTotalRating + newRating) / newNumRatings
+
+        // 3. Prepare the update object
+        val ratingUpdate = RecipeRatingUpdate(
+            rating = updatedRating,
+            numRatings = newNumRatings
+        )
+
+        // 4. Perform the update
+        supabaseClient.from("recipes_dup")
+            .update(ratingUpdate) {
+                filter { eq("id", recipeId) }
+            }
+        true
+    }.getOrElse { error ->
+        println("Failed to update recipe rating for $recipeId: ${error.message}")
+        false
+    }
 }

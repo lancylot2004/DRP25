@@ -322,7 +322,7 @@ private fun getUtensilCategories(): List<UtensilCategory> {
                     UtensilIcon.FORK,
                     UtensilIcon.COOK_KNIFE,
                     UtensilIcon.CLEAVER_BUTCHER,
-                    UtensilIcon.SCRISSORS,
+                    UtensilIcon.SCISSORS,
                     UtensilIcon.PEELER,
                     UtensilIcon.GRATER,
                     UtensilIcon.LADLE,

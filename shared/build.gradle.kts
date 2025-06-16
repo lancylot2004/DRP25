@@ -119,6 +119,9 @@ kotlin {
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.serialization)
 
+            // Kotlin Date-Time | https://github.com/Kotlin/kotlinx-datetime | Apache-2.0
+            implementation(libs.kotlinx.datetime)
+
             // Barcode Scanner | https://github.com/kalinjul/EasyQRScan | Apache-2.0
             implementation(libs.scanner)
         }

@@ -11,10 +11,9 @@ import com.bumble.appyx.components.spotlight.Spotlight
 import dev.lancy.drp25.ui.shared.NavTarget
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.descriptors.element
 import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
@@ -50,35 +49,48 @@ fun ClosedFloatingPointRange<Float>.toIntString(): String = if (ceil(start).toIn
 }
 
 object ClosedFloatRangeSerializer : KSerializer<ClosedFloatingPointRange<Float>> {
-    override val descriptor: SerialDescriptor =
-        buildClassSerialDescriptor("kotlin.ranges.ClosedFloatingPointRange") {
-            element("start", PrimitiveSerialDescriptor("start", PrimitiveKind.FLOAT))
-            element("endEnclusive", PrimitiveSerialDescriptor("start", PrimitiveKind.FLOAT))
-        }
+    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("ClosedFloatingPointRange") {
+        element<Float>("start")
+        element<Float>("endInclusive")
+    }
 
     override fun serialize(encoder: Encoder, value: ClosedFloatingPointRange<Float>) {
+        println("SERIALIZER: Serializing $value")
         encoder.encodeStructure(descriptor) {
             encodeFloatElement(descriptor, 0, value.start)
             encodeFloatElement(descriptor, 1, value.endInclusive)
+            println("SERIALIZER: Encoded start=${value.start}, endInclusive=${value.endInclusive}")
         }
     }
 
-    override fun deserialize(decoder: Decoder): ClosedFloatingPointRange<Float> =
-        decoder.decodeStructure(descriptor) {
+    override fun deserialize(decoder: Decoder): ClosedFloatingPointRange<Float> {
+        return decoder.decodeStructure(descriptor) {
             var start: Float? = null
-            var end: Float? = null
+            var endInclusive: Float? = null
+
             while (true) {
-                val index = decodeElementIndex(descriptor)
-                if (index == CompositeDecoder.DECODE_DONE) break
-                if (index == 0) {
-                    start = decodeFloatElement(descriptor, index)
-                } else {
-                    end = decodeFloatElement(descriptor, index)
+                when (val index = decodeElementIndex(descriptor)) {
+                    0 -> {
+                        start = decodeFloatElement(descriptor, 0)
+                        println("SERIALIZER: Decoded start=$start")
+                    }
+                    1 -> {
+                        endInclusive = decodeFloatElement(descriptor, 1)
+                        println("SERIALIZER: Decoded endInclusive=$endInclusive")
+                    }
+                    CompositeDecoder.DECODE_DONE -> break
+                    else -> error("Unexpected index: $index")
                 }
             }
-            if (start == null || end == null) throw SerializationException("...")
-            start..end
+
+            requireNotNull(start) { "Missing start value" }
+            requireNotNull(endInclusive) { "Missing endInclusive value" }
+
+            val result = start..endInclusive
+            println("SERIALIZER: Deserialized result=$result")
+            result
         }
+    }
 }
 
 fun <T> identity(it: T): T = it

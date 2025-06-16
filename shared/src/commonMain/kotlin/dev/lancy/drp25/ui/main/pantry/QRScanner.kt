@@ -44,15 +44,13 @@ fun QRScannerView(onNavigate: (String) -> Unit) {
 
     Box(Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .background(ColourScheme.primary)
-                .fillMaxSize(),
+            modifier = Modifier.background(ColourScheme.primary).fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(600.dp)
                     .clip(Shape.RoundedMedium)
                     .clipToBounds()
                     .border(Size.Spacing, ColourScheme.outlineVariant, Shape.RoundedMedium),
