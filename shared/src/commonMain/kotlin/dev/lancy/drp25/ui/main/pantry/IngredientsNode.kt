@@ -168,8 +168,8 @@ fun IngredientsNode(
                         modifier = Modifier.height(36.dp),
                         shape = RoundedCornerShape(18.dp),
                         colors = ButtonDefaults.elevatedButtonColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = ButtonDefaults.elevatedButtonElevation(
                             defaultElevation = 2.dp,

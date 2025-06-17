@@ -274,7 +274,7 @@ class RecipeNode(
             ) {
                 CommentSheet(
                     commentsSheetState,
-                    recipeCommentsState, // This updates automatically in real-time!
+                    recipeCommentsState,
                     userName,
                     onDismiss = { showComments = false },
                     onReplyClick = { comment ->
@@ -641,6 +641,7 @@ class RecipeNode(
         onReplyClick: (Comment) -> Unit
     ) {
         ModalBottomSheet(
+            modifier = Modifier.fillMaxSize(),
             onDismissRequest = { onDismiss() },
             sheetState = commentsSheetState,
             containerColor = ColourScheme.surface,
@@ -648,7 +649,7 @@ class RecipeNode(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
                     .padding(Size.Padding)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,

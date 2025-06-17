@@ -52,7 +52,7 @@ fun QRScannerView(
     val coroutineScope = rememberCoroutineScope()
     val currentIngredients by ingredientsManager.state.collectAsState()
 
-    Box(modifier = Modifier.fillMaxSize().background(ColourScheme.primary)) {
+    Box(modifier = Modifier.fillMaxSize().background(ColourScheme.surfaceVariant)) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Top,
@@ -85,7 +85,7 @@ fun QRScannerView(
                 Text(
                     text = "Scan Multiple Items",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = ColourScheme.onPrimary,
+                    color = ColourScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Bold
                 )
 
