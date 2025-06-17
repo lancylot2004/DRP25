@@ -38,7 +38,7 @@ import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import com.composables.icons.lucide.CircleUserRound
 import com.composables.icons.lucide.Cookie
-import com.composables.icons.lucide.Logs
+import com.composables.icons.lucide.History
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Telescope
 import com.composables.icons.lucide.Search
@@ -122,8 +122,8 @@ class MainNode(
          * [Log] contains previously cooked and saved recipes.
          */
         data object Log : MainTarget(
-            "Log",
-            { Lucide.Logs },
+            "Saved",
+            { Lucide.History },
             { context, parent -> LogNode(context, parent) }
         )
 

@@ -22,6 +22,27 @@ enum class Diet(val displayName: String) {
 }
 
 @Serializable
+enum class Allergens(val displayName: String) {
+    PEANUTS("Peanuts"),
+    TREE_NUTS("Tree Nuts"),
+    DAIRY("Dairy"),
+    EGGS("Eggs"),
+    SOY("Soy"),
+    WHEAT("Wheat"),
+    GLUTEN("Gluten"),
+    FISH("Fish"),
+    SHELLFISH("Shellfish"),
+    SESAME("Sesame"),
+    MUSTARD("Mustard"),
+    CELERY("Celery"),
+    SULFITES("Sulfites"),
+    LUPIN("Lupin"),
+    MOLLUSCS("Molluscs");
+
+    override fun toString() = displayName
+}
+
+@Serializable
 enum class Cuisine(val displayName: String) {
     ASIAN("Asian"),
     ITALIAN("Italian"),
@@ -84,7 +105,7 @@ enum class Utensil(val displayName: String) {
     RICE_COOKER("Rice Cooker"),
     ROLLING_PIN("Rolling Pin"),
     SAUCEPAN("Saucepan"),
-    SCRISSORS("Scissors"),
+    SCISSORS("Scissors"),
     SKIMMER("Skimmer"),
     SPATULA("Spatula"),
     STAND_MIXER("Stand Mixer"),

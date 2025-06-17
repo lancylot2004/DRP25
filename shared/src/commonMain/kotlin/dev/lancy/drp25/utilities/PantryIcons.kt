@@ -8,7 +8,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
 import dev.lancy.drp25.shared.resources.Res
 import dev.lancy.drp25.shared.resources.allDrawableResources
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class IngredientIcon(val resourceKey: String) {
     ALCOHOL("ingredient_alcohol"),
     ALMOND("ingredient_almond"),
@@ -54,7 +56,7 @@ enum class IngredientIcon(val resourceKey: String) {
     EGGPLANT("ingredient_eggplant"),
     FALAFEL("ingredient_falafel"),
     FISH("ingredient_fish"),
-    FUSILI("ingredient_fusili"),
+    FUSILLI("ingredient_fusilli"),
     GARLIC("ingredient_garlic"),
     GINGER("ingredient_ginger"),
     GRAPES("ingredient_grapes"),
@@ -114,7 +116,7 @@ enum class IngredientIcon(val resourceKey: String) {
     SALT("ingredient_salt"),
     SAUSAGE("ingredient_sausage"),
     SEASONING("ingredient_seasoning"),
-    SOYA("ingredient_soya"),
+    SOY("ingredient_soy"),
     SPAGHETTI("ingredient_spaghetti"),
     SPINACH("ingredient_spinach"),
     STARCH("ingredient_starch"),
@@ -136,6 +138,7 @@ enum class IngredientIcon(val resourceKey: String) {
     YOGURT("ingredient_yogurt")
 }
 
+@Serializable
 enum class UtensilIcon(val resourceKey: String) {
     CLEAVER_BUTCHER("utensil_cleaver_butcher"),
     COOK_KNIFE("utensil_cook_knife"),
@@ -162,7 +165,7 @@ enum class UtensilIcon(val resourceKey: String) {
     RICE_COOKER("utensil_rice_cooker"),
     ROLLING_PIN("utensil_rolling_pin"),
     SAUCEPAN("utensil_saucepan"),
-    SCRISSORS("utensil_scrissors"),
+    SCISSORS("utensil_scissors"),
     SKIMMER("utensil_skimmer"),
     SPATULA("utensil_spatula"),
     STAND_MIXER("utensil_stand_mixer"),

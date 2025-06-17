@@ -2,9 +2,12 @@ package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,9 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,8 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Carrot
@@ -47,25 +52,36 @@ import dev.chrisbanes.haze.hazeChild
 import dev.lancy.drp25.data.Recipe
 import dev.lancy.drp25.ui.shared.components.IconText
 import dev.lancy.drp25.ui.shared.components.StarRating
-import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.ColourScheme
 import dev.lancy.drp25.utilities.Const
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.identity
+import dev.lancy.drp25.utilities.rememberSavedRecipeIdsManager
 import io.kamel.image.KamelImage
 import io.kamel.image.asyncPainterResource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
 fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> Unit) {
     val hazeState = remember { HazeState() }
     val scope = rememberCoroutineScope()
-    var isSaved by remember { mutableStateOf(false) }
+    val manager = rememberSavedRecipeIdsManager()
+    val savedIds by manager.state.collectAsState(initial = emptySet())
+    val isSaved = recipe.id in savedIds
 
-    LaunchedEffect(scope) {
-        scope.launch { isSaved = Client.isSavedRecipe(recipe) }
-    }
+    // Local flag for the pop animation
+    var showPopHeart by remember { mutableStateOf(false) }
+    val popScale by animateFloatAsState(
+        targetValue = if (showPopHeart) 1.4f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+    )
+    val popAlpha by animateFloatAsState(
+        targetValue = if (showPopHeart) 1f else 0f,
+        animationSpec = tween(durationMillis = 300),
+    )
 
     Box(
         modifier = modifier
@@ -73,7 +89,26 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
             .padding(Size.BigPadding)
             .border(1.dp, ColourScheme.secondary, Shape.RoundedLarge)
             .clip(Shape.RoundedLarge)
-            .clickable(role = Role.Button) { tapCallback() },
+            // .clickable(role = Role.Button) { tapCallback() },
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { tapCallback() },
+                onDoubleClick = {
+                    showPopHeart = true
+                    scope.launch {
+                        manager.update {
+                            if (contains(recipe.id)) {
+                                this - recipe.id
+                            } else {
+                                this + recipe.id
+                            }
+                        }
+                        delay(400)
+                        showPopHeart = false
+                    }
+                },
+            ),
     ) {
         KamelImage(
             resource = { asyncPainterResource(recipe.cardImage) },
@@ -96,8 +131,13 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
             IconButton(
                 onClick = {
                     scope.launch {
-                        isSaved = !isSaved
-                        Client.setSaved(recipe, isSaved)
+                        manager.update {
+                            if (recipe.id in this) {
+                                this - recipe.id
+                            } else {
+                                this + recipe.id
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -118,6 +158,20 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
             }
         }
 
+        // Heart icon when double-tap ??
+        Icon(
+            imageVector = Icons.Filled.Favorite,
+            contentDescription = null,
+            tint = Color(0xFFFF6767),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .graphicsLayer {
+                    scaleX = popScale
+                    scaleY = popScale
+                    alpha = popAlpha
+                }.size(64.dp),
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -134,12 +188,31 @@ fun FeedCard(modifier: Modifier = Modifier, recipe: Recipe, tapCallback: () -> U
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 StarRating(recipe.rating)
+
+                val ratingText = buildString {
+                    if (recipe.numRatings == 0) {
+                        append("No ratings yet")
+                        return@buildString
+                    }
+
+                    val numericValue = recipe
+                        .rating
+                        .toString()
+                        .runCatching { slice(0..3) }
+                        .fold(
+                            onSuccess = ::identity,
+                            onFailure = { recipe.rating.toString() },
+                        )
+                    append(numericValue)
+                    append(" from ${recipe.numRatings} ratings")
+                }
+
                 Text(
-                    text = "${recipe.rating} / 5",
+                    text = ratingText,
                     style = Typography.bodyMedium,
                     color = ColourScheme.onBackground,
                     modifier = Modifier.padding(start = 8.dp),
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
                 )
             }
 

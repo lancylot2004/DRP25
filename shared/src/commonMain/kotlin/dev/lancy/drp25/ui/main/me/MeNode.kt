@@ -1,21 +1,20 @@
 package dev.lancy.drp25.ui.main.me
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Divider
 import androidx.compose.material.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
 import com.composables.icons.lucide.Lucide
@@ -26,6 +25,11 @@ import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
 import dev.lancy.drp25.utilities.ColourScheme
+import dev.lancy.drp25.utilities.rememberUserNameManager
+import dev.lancy.drp25.utilities.rememberRecipesCookedManager
+import dev.lancy.drp25.utilities.rememberSavedPreferencesManager
+import dev.lancy.drp25.utilities.rememberCreatedRecipesManager
+import dev.lancy.drp25.utilities.rememberPreferenceState
 import kotlinx.coroutines.launch
 
 class MeNode(
@@ -34,13 +38,26 @@ class MeNode(
 ) : LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content(modifier: Modifier) {
         val scope = rememberCoroutineScope()
+
+        val userNameManager = rememberUserNameManager()
+        val recipesCookedManager = rememberRecipesCookedManager()
+        val savedPreferencesManager = rememberSavedPreferencesManager()
+        val createdRecipesManager = rememberCreatedRecipesManager()
+
+        val (userName, setUserName) = rememberPreferenceState(userNameManager)
+        val (recipesCooked, _) = rememberPreferenceState(recipesCookedManager)
+        val (savedPreferences, _) = rememberPreferenceState(savedPreferencesManager)
+        val (createdRecipes, _) = rememberPreferenceState(createdRecipesManager)
+
+        var showNameEditDialog by remember { mutableStateOf(false) }
+        var tempUserName by remember { mutableStateOf(userName) }
+
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxSize().padding(16.dp)
         ) {
             IconButton(
                 onClick = {
@@ -58,8 +75,6 @@ class MeNode(
                     tint = Color.White
                 )
             }
-
-            // Dummy content, but leave the settings button in place above.
 
             Column(
                 modifier = Modifier
@@ -84,10 +99,11 @@ class MeNode(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "DRP 25",
+                    text = userName,
                     color = Color.White,
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable { showNameEditDialog = true }
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -96,9 +112,9 @@ class MeNode(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    StatItem("Cooked", "2")
-                    StatItem("Saved", "8")
-                    StatItem("Streak", "1d")
+                    StatItem("Cooked", recipesCooked.toString())
+                    StatItem("Saved", savedPreferences.toString())
+                    StatItem("Created", createdRecipes.toString())
                 }
 
                 Spacer(Modifier.height(32.dp))
@@ -109,6 +125,39 @@ class MeNode(
                     modifier = Modifier
                         .padding(horizontal = 32.dp)
                         .fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(32.dp))
+            }
+
+            if (showNameEditDialog) {
+                AlertDialog(
+                    onDismissRequest = { showNameEditDialog = false },
+                    title = { Text("Edit User Name") },
+                    text = {
+                        OutlinedTextField(
+                            value = tempUserName,
+                            onValueChange = { tempUserName = it },
+                            label = { Text("User Name") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                setUserName(tempUserName)
+                                showNameEditDialog = false
+                            }
+                        ) {
+                            Text("Save")
+                        }
+                    },
+                    dismissButton = {
+                        Button(onClick = { showNameEditDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
                 )
             }
         }

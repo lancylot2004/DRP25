@@ -1,16 +1,22 @@
 package dev.lancy.drp25.ui.main.feed
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,6 +45,7 @@ import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Settings
 import dev.lancy.drp25.data.FilterValues
 import dev.lancy.drp25.data.Recipe
+import dev.lancy.drp25.data.rememberFiltersManager
 import dev.lancy.drp25.ui.RootNode
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
@@ -48,6 +55,7 @@ import dev.lancy.drp25.utilities.ScreenSize
 import dev.lancy.drp25.utilities.Shape
 import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.rememberDietaryPreferencesManager
 import dev.lancy.drp25.utilities.rememberPersisted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,6 +68,7 @@ class FeedNode(
     parent: MainNode,
 ) : LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
+
     private fun CoroutineScope.updateRecipes(
         filterValues: FilterValues,
         onUpdate: (List<Recipe>) -> Unit,
@@ -86,12 +95,45 @@ class FeedNode(
         val scope = rememberCoroutineScope()
 
         var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
+        var isInitialLoad by remember { mutableStateOf(true) }
 
-        val filterPersistence = rememberPersisted("filters") { FilterValues() }
-        val filterValues by filterPersistence.state.collectAsState()
+        val filtersManager = rememberFiltersManager()
+        val filterValues by filtersManager.state.collectAsState()
 
-        LaunchedEffect(this.lifecycleScope) {
-            scope.updateRecipes(filterValues) { recipes = it }
+        // Subscribe to real-time recipe updates
+        val allRecipes by Client.allRecipes.collectAsState()
+
+        // SnapFlingBehaviour for Slower Swiping, one at a time
+        val defaultSnapFlingBehavior = rememberSnapFlingBehavior(lazyListState = scrollState)
+        val customFlingBehavior = object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val modifiedVelocity = initialVelocity * 0.5f
+                val currentScrollScope = this
+                return defaultSnapFlingBehavior.run {
+                    currentScrollScope.performFling(modifiedVelocity)
+                }
+            }
+        }
+
+        // Initial load with filters
+        LaunchedEffect(filterValues) {
+            scope.updateRecipes(filterValues) {
+                recipes = it
+                isInitialLoad = false
+            }
+        }
+
+        // Initialize real-time subscriptions
+        LaunchedEffect(Unit) {
+            Client.subscribeToAllRecipes()
+        }
+
+        // Update recipes when real-time updates occur (after initial load)
+        LaunchedEffect(allRecipes, filterValues) {
+            if (!isInitialLoad && allRecipes.isNotEmpty()) {
+                // Re-fetch with filters when recipes change in real-time
+                scope.updateRecipes(filterValues) { recipes = it }
+            }
         }
 
         Box(Modifier.fillMaxSize()) {
@@ -116,16 +158,16 @@ class FeedNode(
             }
 
             LazyRow(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // Take into account header.
-                    .padding(top = Size.IconMedium + Size.Padding),
+                modifier = Modifier.fillMaxSize().padding(top = Size.IconMedium + Size.Padding),
                 state = scrollState,
-                flingBehavior = rememberSnapFlingBehavior(scrollState),
+                flingBehavior = customFlingBehavior,
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                items(recipes) { recipe ->
+                items(
+                    items = recipes,
+                    key = { it.id } // Important for proper recomposition
+                ) { recipe ->
                     FeedCard(
                         modifier = Modifier
                             .size(ScreenSize.width, ScreenSize.height)
@@ -135,10 +177,10 @@ class FeedNode(
                     )
                 }
 
-                if (recipes.isEmpty()) {
+                if (recipes.isEmpty() && !isInitialLoad) {
                     item {
                         Text(
-                            text = "No recipes available",
+                            text = "No recipes match your filters",
                             color = Color.White,
                             style = Typography.bodyMedium,
                             textAlign = TextAlign.Center,
@@ -149,21 +191,19 @@ class FeedNode(
 
             AnimatedVisibility(sheetState.isVisible) {
                 ModalBottomSheet(
-                    modifier = Modifier
-                        .fillMaxHeight(Size.ModalSheetHeight)
-                        .align(Alignment.BottomCenter),
+                    modifier = Modifier.fillMaxHeight(Size.ModalSheetHeight).align(Alignment.BottomCenter),
                     shape = Shape.RoundedLarge,
                     sheetState = sheetState,
                     onDismissRequest = {
                         scope.launch {
                             sheetState.hide()
-                            scope.updateRecipes(filterPersistence.state.value) { recipes = it }
+                            // Filters will automatically trigger a re-fetch via LaunchedEffect
                         }
                     },
                     dragHandle = {},
                 ) {
                     Column {
-                        FilterContent(filterPersistence)
+                        FilterContent(filtersManager)
                     }
                 }
             }

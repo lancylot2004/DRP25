@@ -11,6 +11,7 @@ internal class SettingsInitializer : Initializer<Context> {
     override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }
 
+@Volatile
 private var appContext: Context? = null
 
 actual fun provideSettings(): Settings {

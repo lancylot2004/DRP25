@@ -21,7 +21,7 @@ import dev.lancy.drp25.utilities.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues>) {
+fun ColumnScope.FilterContent(filtersManager: PersistenceManager<FilterValues>) {
     Text(
         "Filters",
         style = Typography.titleMedium,
@@ -32,7 +32,7 @@ fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues
         textAlign = TextAlign.Center,
     )
 
-    val filterValues by filterPersistence.state.collectAsState()
+    val filterValues by filtersManager.state.collectAsState()
 
     Column(
         modifier = Modifier
@@ -46,35 +46,47 @@ fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues
             value = filterValues.timeRange,
             range = FilterRanges.TIME_RANGE,
             format = { formatRange(it, FilterRanges.TIME_RANGE, "min", "any duration") },
-        ) { filterPersistence.update { copy(timeRange = it) } }
+        ) { newRange ->
+            filtersManager.update { this.copy(timeRange = newRange) }
+        }
 
         StarRatingSection(
             title = "Minimum rating",
             rating = filterValues.rating,
-        ) { filterPersistence.update { copy(rating = it) } }
+        ) { newRating ->
+            filtersManager.update { this.copy(rating = newRating) }
+        }
 
         ChipSelectionSection(
             "Type of meal",
             MealType.entries,
             filterValues.selectedMealTypes,
-        ) { filterPersistence.update { copy(selectedMealTypes = it) } }
+        ) { newSelection ->
+            filtersManager.update { this.copy(selectedMealTypes = newSelection) }
+        }
 
         ChipSelectionSection(
             "Cuisine",
             Cuisine.entries,
             filterValues.selectedCuisines,
-        ) { filterPersistence.update { copy(selectedCuisines = it) } }
+        ) { newSelection ->
+            filtersManager.update { this.copy(selectedCuisines = newSelection) }
+        }
 
         ChipSelectionSection(
             "Dietary needs",
             Diet.entries,
             filterValues.selectedDiets,
-        ) { filterPersistence.update { copy(selectedDiets = it) } }
+        ) { newSelection ->
+            filtersManager.update { this.copy(selectedDiets = newSelection) }
+        }
 
         BinarySection(
             title = "Use only my equipment",
             value = filterValues.useMyEquipmentOnly,
-            onValueChange = { filterPersistence.update { copy(useMyEquipmentOnly = it) } },
+            onValueChange = { newValue ->
+                filtersManager.update { this.copy(useMyEquipmentOnly = newValue) }
+            },
         )
 
         SliderSection(
@@ -82,28 +94,36 @@ fun ColumnScope.FilterContent(filterPersistence: PersistenceManager<FilterValues
             filterValues.calorieRange,
             FilterRanges.CALORIE_RANGE,
             { formatRange(it, FilterRanges.CALORIE_RANGE, "cal", "any calories") },
-        ) { filterPersistence.update { copy(calorieRange = it) } }
+        ) { newRange ->
+            filtersManager.update { this.copy(calorieRange = newRange) }
+        }
 
         SliderSection(
             "Protein",
             filterValues.proteinRange,
             FilterRanges.PROTEIN_RANGE,
             { formatRange(it, FilterRanges.PROTEIN_RANGE, "g", "any protein content") },
-        ) { filterPersistence.update { copy(proteinRange = it) } }
+        ) { newRange ->
+            filtersManager.update { this.copy(proteinRange = newRange) }
+        }
 
         SliderSection(
             "Fat",
             filterValues.fatRange,
             FilterRanges.FAT_RANGE,
             { formatRange(it, FilterRanges.FAT_RANGE, "g", "any fat content") },
-        ) { filterPersistence.update { copy(fatRange = it) } }
+        ) { newRange ->
+            filtersManager.update { this.copy(fatRange = newRange) }
+        }
 
         SliderSection(
             "Carbohydrates",
             filterValues.carbsRange,
             FilterRanges.CARBS_RANGE,
             { formatRange(it, FilterRanges.CARBS_RANGE, "g", "any carb content") },
-        ) { filterPersistence.update { copy(carbsRange = it) } }
+        ) { newRange ->
+            filtersManager.update { this.copy(carbsRange = newRange) }
+        }
     }
 }
 
@@ -125,14 +145,12 @@ private fun SliderSection(
             Text(format(value), style = Typography.titleSmall, color = ColourScheme.onBackground.copy(alpha = 0.7f))
         }
 
-        // Could separate onValueChange with onValueChangeFinished to optimise.
-
         RangeSlider(
             value,
             onValueChange = { onChange(it) },
             modifier = Modifier.fillMaxWidth(),
             valueRange = range,
-            steps = FilterRanges.TIME_RANGE.intSteps(),
+            steps = (range.endInclusive - range.start).toInt().coerceAtLeast(0)
         )
     }
 }
@@ -150,7 +168,7 @@ private fun formatRange(
         start == end -> "${start.toInt()} $unit"
         start == range.start && end == range.endInclusive -> anyMessage
         start == range.start -> "Up to ${end.toInt()} $unit"
-        end == range.endInclusive -> "At least ${start.toInt()} min"
+        end == range.endInclusive -> "At least ${start.toInt()} $unit"
         else -> "${start.toInt()} to ${end.toInt()} $unit"
     }
 }
@@ -175,7 +193,10 @@ private fun <T> ChipSelectionSection(
 
                 FilterChip(
                     selected = selected,
-                    onClick = { onSelectionChange(if (selected) selection - item else selection + item) },
+                    onClick = {
+                        val newSelection = if (selected) selection - item else selection + item
+                        onSelectionChange(newSelection)
+                    },
                     label = { Text(item.toString(), style = Typography.bodyMedium) },
                     shape = Shape.RoundedMedium,
                 )
@@ -257,7 +278,6 @@ private fun StarRatingSelector(
                         detectTapGestures { onRatingChanged(index + 1f) }
                     },
             ) {
-                // Empty background star
                 Icon(
                     imageVector = Lucide.Star,
                     contentDescription = null,
@@ -265,13 +285,11 @@ private fun StarRatingSelector(
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                // Filled foreground star
                 Icon(
                     imageVector = Lucide.Star,
                     contentDescription = null,
                     tint = Color(0xFFFFD700),
-                    modifier = Modifier
-                        .fillMaxSize()
+                    modifier = Modifier.fillMaxSize()
                         .drawWithContent {
                             clipRect(right = size.width * animatedFill) {
                                 this@drawWithContent.drawContent()

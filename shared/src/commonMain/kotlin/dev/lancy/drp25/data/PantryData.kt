@@ -1,9 +1,11 @@
 package dev.lancy.drp25.data
 
 import dev.lancy.drp25.utilities.IngredientIcon
+import kotlinx.serialization.Serializable
 import kotlin.math.round
 import kotlin.math.roundToInt
 
+@Serializable
 enum class IngredientLocation {
     Fridge,
     Freezer,
@@ -11,17 +13,19 @@ enum class IngredientLocation {
 }
 
 // Compacted and reordered categories by common usage
+@Serializable
 enum class IngredientType(val displayName: String, val order: Int) {
     ESSENTIALS("Essentials", 1),
     VEGETABLES("Vegetables", 2),
     MEAT("Meat", 3),
     DAIRY("Dairy", 4),
     FRUIT("Fruit", 5),
-    BAKING_SNACKS("Baking & Snacks", 6), // Combines Grains, Baked Goods, and Snacks
-    CONDIMENTS("Condiments", 7),       // Combines Sauces, Spices, and traditional Condiments
-    LIQUIDS("Liquids", 8)             // Renamed from Beverages
+    BAKING_SNACKS("Baking & Snacks", 6),
+    CONDIMENTS("Condiments", 7),
+    LIQUIDS("Liquids", 8)
 }
 
+@Serializable
 data class IngredientItem(
     val icon: IngredientIcon,
     val name: String,
@@ -125,7 +129,7 @@ fun getDefaultIngredients(): List<IngredientItem> = listOf(
     IngredientItem(IngredientIcon.BREAD, "Bread", "g", 1.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
     IngredientItem(IngredientIcon.RICE, "Rice", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
     IngredientItem(IngredientIcon.SPAGHETTI, "Spaghetti", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
-    IngredientItem(IngredientIcon.FUSILI, "Fusili", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
+    IngredientItem(IngredientIcon.FUSILLI, "Fusilli", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
     IngredientItem(IngredientIcon.MACARONI, "Macaroni", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
     IngredientItem(IngredientIcon.NOODLE, "Noodle", "g", 100.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
     IngredientItem(IngredientIcon.RAMEN, "Ramen", "g", 1.0, location = IngredientLocation.Pantry, type = IngredientType.BAKING_SNACKS),
@@ -157,7 +161,7 @@ fun getDefaultIngredients(): List<IngredientItem> = listOf(
     IngredientItem(IngredientIcon.KETCHUP, "Ketchup", "ml", 1.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),
     IngredientItem(IngredientIcon.MUSTARD, "Mustard", "ml", 1.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),
     IngredientItem(IngredientIcon.CHILI_SAUCE, "Chili Sauce", "ml", 25.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),
-    IngredientItem(IngredientIcon.SOYA, "Soya", "ml", 25.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),
+    IngredientItem(IngredientIcon.SOY, "Soy", "ml", 25.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),
     IngredientItem(IngredientIcon.VINEGAR, "Vinegar", "ml", 1.0, location = IngredientLocation.Pantry, type = IngredientType.CONDIMENTS),
     IngredientItem(IngredientIcon.HONEY, "Honey", "ml", 1.0, location = IngredientLocation.Pantry, type = IngredientType.CONDIMENTS),
     IngredientItem(IngredientIcon.JAM, "Jam", "ml", 1.0, location = IngredientLocation.Fridge, type = IngredientType.CONDIMENTS),

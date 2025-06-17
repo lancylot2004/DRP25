@@ -1,5 +1,7 @@
 package dev.lancy.drp25.data
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import com.bumble.appyx.utils.multiplatform.Parcelable
 import com.bumble.appyx.utils.multiplatform.Parcelize
 import com.russhwolf.settings.ExperimentalSettingsApi
@@ -11,10 +13,12 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import dev.lancy.drp25.utilities.settings
 import com.russhwolf.settings.serialization.decodeValueOrNull
+import dev.lancy.drp25.utilities.rememberPreferredTemperatureSystemManager
+import dev.lancy.drp25.utilities.rememberPreferredVolumeSystemManager
+import dev.lancy.drp25.utilities.rememberPreferredWeightSystemManager
+import kotlin.math.round
 
-@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
-fun getPreferredSystem(): MeasurementSystem =
-    settings.decodeValueOrNull<MeasurementSystem>("measurement_system") ?: MeasurementSystem.METRIC
+
 
 // INGREDIENTS
 @Serializable
@@ -63,7 +67,7 @@ enum class Ingredients(val displayName: String) {
     EGGPLANT("Eggplant"),
     FALAFEL("Falafel"),
     FISH("Fish"),
-    FUSILI("Fusili"),
+    FUSILLI("Fusilli"),
     GARLIC("Garlic"),
     GINGER("Ginger"),
     GRAPES("Grapes"),
@@ -123,7 +127,7 @@ enum class Ingredients(val displayName: String) {
     SALT("Salt"),
     SAUSAGE("Sausage"),
     SEASONING("Seasoning"),
-    SOYA("Soya"),
+    SOY("Soy"),
     SPAGHETTI("Spaghetti"),
     SPINACH("Spinach"),
     STARCH("Starch"),
@@ -155,6 +159,7 @@ data class Ingredient(
     val unit: IngredientUnit,
 ) : Parcelable
 
+@Serializable
 enum class MeasurementSystem { METRIC, IMPERIAL }
 
 @Serializable(with = IngredientUnitSerialiser::class)
@@ -180,9 +185,9 @@ sealed class IngredientUnit(
 
         data object Kilogram : WeightUnit("Kilogram", "kg", 1000.0)
 
-        data object Ounce : WeightUnit("Ounce", "oz", 28.3495)
+        data object Ounce : WeightUnit("Ounce", "oz", 28.0)
 
-        data object Pound : WeightUnit("Pound", "lb", 453.592)
+        data object Pound : WeightUnit("Pound", "lb", 450.0)
     }
 
     @Parcelize
@@ -195,9 +200,9 @@ sealed class IngredientUnit(
 
         data object Liter : VolumeUnit("Liter", "L", 1000.0)
 
-        data object Teaspoon : VolumeUnit("Teaspoon", "tsp", 4.92892)
+        data object Teaspoon : VolumeUnit("Teaspoon", "tsp", 5.0)
 
-        data object Tablespoon : VolumeUnit("Tablespoon", "tbsp", 14.7868)
+        data object Tablespoon : VolumeUnit("Tablespoon", "tbsp", 15.0)
 
         data object Cup : VolumeUnit("Cup", "cup", 240.0)
     }
@@ -254,35 +259,82 @@ private fun getMeasurementSystem(unit: IngredientUnit): MeasurementSystem = when
     is IngredientUnit.WeightUnit.Kilogram -> MeasurementSystem.METRIC
     is IngredientUnit.WeightUnit.Ounce,
     is IngredientUnit.WeightUnit.Pound -> MeasurementSystem.IMPERIAL
-    else -> MeasurementSystem.METRIC
+    is IngredientUnit.VolumeUnit.Milliliter,
+    is IngredientUnit.VolumeUnit.Liter -> MeasurementSystem.METRIC
+    is IngredientUnit.VolumeUnit.Teaspoon,
+    is IngredientUnit.VolumeUnit.Tablespoon,
+    is IngredientUnit.VolumeUnit.Cup -> MeasurementSystem.IMPERIAL
+    is IngredientUnit.CountUnit -> MeasurementSystem.METRIC // Count units are considered metric by default for consistency
 }
 
 private fun preferredUnitFor(system: MeasurementSystem, fromUnit: IngredientUnit): IngredientUnit = when (system) {
     MeasurementSystem.METRIC -> when (fromUnit) {
-        IngredientUnit.WeightUnit.Ounce -> IngredientUnit.WeightUnit.Gram
-        IngredientUnit.WeightUnit.Pound -> IngredientUnit.WeightUnit.Kilogram
+        is IngredientUnit.WeightUnit.Ounce -> IngredientUnit.WeightUnit.Gram
+        is IngredientUnit.WeightUnit.Pound -> IngredientUnit.WeightUnit.Kilogram
+        is IngredientUnit.VolumeUnit.Teaspoon,
+        is IngredientUnit.VolumeUnit.Tablespoon,
+        is IngredientUnit.VolumeUnit.Cup -> IngredientUnit.VolumeUnit.Milliliter
+        is IngredientUnit.CountUnit.Pinch,
+        is IngredientUnit.CountUnit.Dash -> IngredientUnit.CountUnit.Piece // Convert to generic piece
         else -> fromUnit
     }
     MeasurementSystem.IMPERIAL -> when (fromUnit) {
-        IngredientUnit.WeightUnit.Gram -> IngredientUnit.WeightUnit.Ounce
-        IngredientUnit.WeightUnit.Kilogram -> IngredientUnit.WeightUnit.Pound
+        is IngredientUnit.WeightUnit.Gram -> IngredientUnit.WeightUnit.Ounce
+        is IngredientUnit.WeightUnit.Kilogram -> IngredientUnit.WeightUnit.Pound
+        is IngredientUnit.VolumeUnit.Milliliter -> IngredientUnit.VolumeUnit.Cup
+        is IngredientUnit.VolumeUnit.Liter -> IngredientUnit.VolumeUnit.Cup
+        is IngredientUnit.CountUnit.Piece,
+        is IngredientUnit.CountUnit.Slice -> IngredientUnit.CountUnit.Pinch // Convert to generic pinch
         else -> fromUnit
     }
 }
 
+@Composable
 fun formatIngredientDisplay(ingredient: Ingredient): String {
-    val preferredSystem = getPreferredSystem()
-    val currentSystem = getMeasurementSystem(ingredient.unit)
-    val displayUnit = if (currentSystem == preferredSystem) {
-        ingredient.unit
-    } else {
-        preferredUnitFor(preferredSystem, ingredient.unit)
+    val preferredWeightSystem = rememberPreferredWeightSystemManager().state.collectAsState().value
+    val preferredVolumeSystem = rememberPreferredVolumeSystemManager().state.collectAsState().value
+    val preferredTemperatureSystem = rememberPreferredTemperatureSystemManager().state.collectAsState().value
+
+    val currentUnit = ingredient.unit
+    val displayUnit: IngredientUnit
+    val targetPreferredSystem: MeasurementSystem
+
+    // Determine the target preferred system and the appropriate display unit
+    // based on the type of the ingredient's unit (Weight, Volume, or Count).
+    when (currentUnit) {
+        is IngredientUnit.WeightUnit -> {
+            targetPreferredSystem = preferredWeightSystem
+            displayUnit = if (getMeasurementSystem(currentUnit) == targetPreferredSystem) {
+                currentUnit // Current unit already matches preferred system for weight
+            } else {
+                preferredUnitFor(targetPreferredSystem, currentUnit) // Convert to preferred weight unit
+            }
+        }
+        is IngredientUnit.VolumeUnit -> {
+            targetPreferredSystem = preferredVolumeSystem
+            displayUnit = if (getMeasurementSystem(currentUnit) == targetPreferredSystem) {
+                currentUnit // Current unit already matches preferred system for volume
+            } else {
+                preferredUnitFor(targetPreferredSystem, currentUnit) // Convert to preferred volume unit
+            }
+        }
+        is IngredientUnit.CountUnit -> {
+            targetPreferredSystem = preferredTemperatureSystem
+            displayUnit = if (getMeasurementSystem(currentUnit) == targetPreferredSystem) {
+                currentUnit // Current unit already matches preferred system for count
+            } else {
+                preferredUnitFor(targetPreferredSystem, currentUnit) // Convert to preferred count unit
+            }
+        }
     }
+
+    // Calculate the quantity in the display unit.
     val displayQuantity = if (ingredient.unit == displayUnit) {
         ingredient.quantity
     } else {
         ingredient.quantity.convert(ingredient.unit, displayUnit)
     }
+
     val quantityFormatted = formatDouble(displayQuantity)
     val unitLabel = displayUnit.shortName
 
@@ -295,16 +347,121 @@ fun formatIngredientDisplay(ingredient: Ingredient): String {
 
 fun formatDouble(quantity: Double): String = when {
     quantity % 1.0 == 0.0 -> quantity.toInt().toString()
+    quantity >= 10.0 -> {
+        val roundedToNearestTen = round(quantity / 10.0) * 10.0
+        roundedToNearestTen.toInt().toString()
+    }
     else -> {
-        val s = quantity.toString()
-        val i = s.indexOf('.')
-        if (i == -1) {
-            s
+        if (quantity > 5) {
+            round(quantity).toInt().toString()
         } else {
-            s
-                .substring(0, (i + 3).coerceAtMost(s.length))
-                .trimEnd('0')
-                .trimEnd('.')
+            val quant = round(quantity).toInt()
+            if (quant == 0)
+                (quant + 1).toString()
+            else quant.toString()
         }
     }
+}
+
+
+// CONVERT TEMPERATURE FROM METRIC TO IMPERIAL
+@Serializable(with = TemperatureUnitSerialiser::class)
+sealed class TemperatureUnit(
+    val displayName: String,
+    val shortName: String,
+) {
+    data object Celsius : TemperatureUnit("Celsius", "°C")
+    data object Fahrenheit : TemperatureUnit("Fahrenheit", "°F")
+}
+
+// Provided KSerializer for TemperatureUnit (from your prompt)
+object TemperatureUnitSerialiser : KSerializer<TemperatureUnit> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Temperature", PrimitiveKind.STRING)
+
+    override fun deserialize(decoder: Decoder): TemperatureUnit = when (decoder.decodeString().lowercase()) {
+        "°c" -> TemperatureUnit.Celsius
+        "celsius" -> TemperatureUnit.Celsius // Also accept "celsius"
+        "°f" -> TemperatureUnit.Fahrenheit
+        "fahrenheit" -> TemperatureUnit.Fahrenheit // Also accept "fahrenheit"
+        else -> error("Unknown temperature unit: ${decoder.decodeString()}")
+    }
+
+    override fun serialize(
+        encoder: Encoder,
+        value: TemperatureUnit,
+    ) = encoder.encodeString(value.shortName)
+}
+
+// Temperature Conversion Functions
+fun convertCelsiusToFahrenheit(celsius: Double): Double = celsius * 9.0 / 5.0 + 32.0
+fun convertFahrenheitToCelsius(fahrenheit: Double): Double = (fahrenheit - 32.0) * 5.0 / 9.0
+
+// Helper for determining inherent system of a TemperatureUnit
+private fun getMeasurementSystem(unit: TemperatureUnit): MeasurementSystem = when (unit) {
+    TemperatureUnit.Celsius -> MeasurementSystem.METRIC
+    TemperatureUnit.Fahrenheit -> MeasurementSystem.IMPERIAL
+}
+
+// Helper for formatting temperature values (KMM compatible)
+fun formatTemperatureValue(value: Double): String {
+    // Round to one decimal place
+    val roundedValue = round(value * 10) / 10.0
+    return if (roundedValue % 1.0 == 0.0) {
+        roundedValue.toInt().toString() // If it's a whole number after rounding, display as integer
+    } else {
+        val intPart = roundedValue.toInt()
+        "$intPart"
+    }
+}
+
+@Composable
+fun formatStepDisplay(step: Step): Step {
+    // Collect the current preferred temperature system from its manager.
+    val preferredTemperatureSystem = rememberPreferredTemperatureSystemManager().state.collectAsState().value
+
+    // Regex to find numbers followed by temperature units (e.g., "100°C", "212F", "30 degrees C")
+    // Captures: 1. The number (including decimals)
+    //           2. The unit symbol/word (e.g., "°C", "C", "degrees Fahrenheit")
+    // This regex is more robust to capture various forms.
+    val temperatureRegex = Regex("(\\d+(?:\\.\\d+)?)\\s*(?:degrees\\s*)?(°[CF]|Celsius|Fahrenheit|[CF])", RegexOption.IGNORE_CASE)
+
+    var modifiedDescription = step.description
+
+    modifiedDescription = temperatureRegex.replace(modifiedDescription) { matchResult ->
+        val valueString = matchResult.groups[1]?.value ?: return@replace matchResult.value // Fallback to original
+        val unitString = matchResult.groups[2]?.value ?: return@replace matchResult.value // Fallback to original
+        val fullMatch = matchResult.value
+
+        val value = valueString.toDoubleOrNull() ?: return@replace matchResult.value // Cannot parse, keep original
+
+        val currentUnit: TemperatureUnit? = when (unitString.uppercase()) {
+            "°C", "C", "CELSIUS" -> TemperatureUnit.Celsius
+            "°F", "F", "FAHRENHEIT" -> TemperatureUnit.Fahrenheit
+            else -> null
+        }
+
+        if (currentUnit != null) {
+            val currentSystem = getMeasurementSystem(currentUnit)
+
+            if (currentSystem != preferredTemperatureSystem) {
+                // Conversion is needed
+                val convertedValue: Double
+                val targetUnit: TemperatureUnit
+
+                if (preferredTemperatureSystem == MeasurementSystem.METRIC) {
+                    convertedValue = convertFahrenheitToCelsius(value)
+                    targetUnit = TemperatureUnit.Celsius
+                } else { // IMPERIAL
+                    convertedValue = convertCelsiusToFahrenheit(value)
+                    targetUnit = TemperatureUnit.Fahrenheit
+                }
+
+                val formattedTemperature = formatTemperatureValue(convertedValue)
+                return@replace "$formattedTemperature${targetUnit.shortName}"
+            }
+        }
+        fullMatch
+    }
+    // Return a new Step object with the modified description
+    return Step(description = modifiedDescription, videoTimestamp = step.videoTimestamp)
 }

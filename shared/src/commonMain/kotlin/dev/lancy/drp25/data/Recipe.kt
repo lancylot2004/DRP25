@@ -12,6 +12,7 @@ data class Recipe(
     val name: String,
     val description: String,
     val rating: Float = 0f,
+    val numRatings: Int = 0,
     val portions: Int = 1,
     val cookingTime: Int,
     val cleanupTime: Int? = null,
@@ -30,8 +31,8 @@ data class Recipe(
 ) : NavTarget,
     Parcelable
 
-@Serializable
 @Parcelize
+@Serializable
 class Step(
     var description: String = "",
     var videoTimestamp: Int? = null,

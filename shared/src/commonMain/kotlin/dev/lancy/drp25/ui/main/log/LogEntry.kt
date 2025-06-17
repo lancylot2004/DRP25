@@ -70,19 +70,27 @@ fun logEntry(recipe: Recipe, navCallback: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(Size.CornerSmall),
                     modifier = Modifier.padding(end = Size.Padding),
                 ) {
-                    Icon(
-                        imageVector = Lucide.Star,
-                        contentDescription = null,
-                        tint = Color(0xFFFFD700),
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically),
-                    )
-                    Text(
-                        text = "${recipe.rating} / 5",
-                        style = Typography.bodyMedium,
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                    )
+                    if (recipe.rating == 0.0f) {
+                        Icon(
+                            imageVector = Lucide.Star,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Lucide.Star,
+                            contentDescription = null,
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                        Text(
+                            text = "${recipe.rating} / 5",
+                            style = Typography.bodyMedium,
+                            color = Color.White,
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                        )
+                    }
                 }
             }
             Row(

@@ -1,3 +1,4 @@
+// File: dev/lancy/drp25/ui/main/pantry/PantryNode.kt
 package dev.lancy.drp25.ui.main.pantry
 
 import androidx.compose.foundation.background
@@ -7,40 +8,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.bumble.appyx.navigation.modality.NodeContext
 import com.bumble.appyx.navigation.node.LeafNode
-import dev.lancy.drp25.data.IngredientItem
-import dev.lancy.drp25.data.getDefaultIngredients
+import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Scan
 import dev.lancy.drp25.ui.main.MainNode
 import dev.lancy.drp25.ui.shared.NavConsumer
 import dev.lancy.drp25.ui.shared.NavConsumerImpl
+import dev.lancy.drp25.utilities.Client
 import dev.lancy.drp25.utilities.Size
+import dev.lancy.drp25.utilities.Typography
+import dev.lancy.drp25.utilities.rememberPantryIngredientsManager
+import dev.lancy.drp25.utilities.httpClient
+import kotlinx.coroutines.runBlocking
 
 class PantryNode(
     nodeContext: NodeContext,
     parent: MainNode,
 ) : LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
+
     @Composable
     override fun Content(modifier: Modifier) {
-//        PantryScreen(modifier)
-
-        QRScannerView { }
+        // Remove the scanner state from here as it's now handled in IngredientsNode
+        PantryScreen(modifier = modifier)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantryScreen(modifier: Modifier = Modifier) {
+fun PantryScreen(
+    modifier: Modifier = Modifier
+) {
     var selectedTabIndex by remember { mutableStateOf(0) }
     var showUtensilsScreen by remember { mutableStateOf(false) }
     val tabTitles = listOf("Fridge", "Freezer", "All")
 
-    // Centralized state for all ingredients
-    val allIngredients = remember { mutableStateListOf<IngredientItem>().apply { addAll(getDefaultIngredients()) } }
-
     Scaffold(
-        modifier = modifier.fillMaxSize(), // Ensure Scaffold fills the whole screen
+        modifier = modifier.fillMaxSize(),
         bottomBar = {
             Row(
                 modifier = Modifier
@@ -62,23 +69,25 @@ fun PantryScreen(modifier: Modifier = Modifier) {
                     onUtensilsClick = {
                         showUtensilsScreen = !showUtensilsScreen
                     },
+                    isActive = showUtensilsScreen
                 )
             }
         },
-    ) {
+    ) { paddingValues ->
         if (showUtensilsScreen) {
-            UtensilsScreen(modifier = Modifier.fillMaxSize())
+            // Simplified UtensilsScreen call - no more manual state management needed
+            UtensilsScreen(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            )
         } else {
+            // IngredientsNode now handles the scanner internally
             IngredientsNode(
                 selectedTabIndex = selectedTabIndex,
-                allIngredients = allIngredients,
-                onQuantityChange = { updatedIngredient ->
-                    val index = allIngredients.indexOfFirst { it.name == updatedIngredient.name }
-                    if (index != -1) {
-                        allIngredients[index] = updatedIngredient
-                    }
-                },
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
             )
         }
     }
