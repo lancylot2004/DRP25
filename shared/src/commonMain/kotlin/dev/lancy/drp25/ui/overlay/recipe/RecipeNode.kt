@@ -112,7 +112,9 @@ import dev.lancy.drp25.utilities.Size
 import dev.lancy.drp25.utilities.Typography
 import dev.lancy.drp25.utilities.getUserName
 import dev.lancy.drp25.utilities.identity
+import dev.lancy.drp25.utilities.rememberPantryIngredientsManager
 import dev.lancy.drp25.utilities.settings
+import dev.lancy.drp25.utilities.subtractIngredientsFromRecipe
 import io.kamel.core.ExperimentalKamelApi
 import io.kamel.image.KamelImageBox
 import io.kamel.image.asyncPainterResource
@@ -145,6 +147,8 @@ class RecipeNode(
 
         val commentsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         var showComments by remember { mutableStateOf(false) }
+
+        val pantryManager = rememberPantryIngredientsManager()
 
         // Get real-time comments from Client
         val allComments by Client.allComments.collectAsState()
@@ -250,11 +254,16 @@ class RecipeNode(
                     userName = userName,
                     recipeId = displayRecipe.id,
                     onDismiss = { showReviewDialog = false },
-                    onSuccess = {
+                    onSuccess = { userRating ->
+                        userRating
                         showSuccessAnimation = true
                         showReviewDialog = false
-                        userRating = it
-                        // No manual refresh needed - real-time updates handle it!
+
+                        // --- SUBTRACT INGREDIENTS FROM PANTRY HERE ---
+                        scope.launch { // Launch in the coroutine scope
+                            println("RecipeNode: User finished recipe '${displayRecipe.name}'. Attempting to subtract ingredients from pantry.")
+                            pantryManager.subtractIngredientsFromRecipe(displayRecipe)
+                        }
                     },
                 )
             }

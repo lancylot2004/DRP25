@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.datetime.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlin.math.pow
+import kotlin.math.round
 
 // Keys for Settings storage
 private const val PANTRY_INGREDIENTS_KEY = "pantry_ingredients"
@@ -178,4 +180,91 @@ fun PersistentPantryIngredient.daysUntilExpiration(): Int? {
     } catch (e: Exception) {
         null
     }
+}
+
+// --- New Function to Subtract Recipe Ingredients from Pantry ---
+
+/**
+ * Updates the pantry by subtracting ingredients used in a cooked recipe.
+ * For each ingredient in the recipe:
+ * - It attempts to find a matching ingredient in the pantry (by name).
+ * - If found, it converts the recipe's ingredient quantity to the pantry item's default unit.
+ * - It then reduces the pantry item's quantity by the amount used.
+ * - If an ingredient is not found in the pantry, or if there's insufficient quantity,
+ * a warning is printed, and that specific ingredient's subtraction is skipped.
+ *
+ * @param recipe The cooked recipe containing the list of ingredients to subtract.
+ */
+fun PersistenceManager<List<IngredientItem>>.subtractIngredientsFromRecipe(recipe: Recipe) {
+    // We update the state of the pantry manager
+    update { // 'currentPantryList' is the List<IngredientItem> from the StateFlow
+        val updatedPantryList = this.toMutableList()
+        var anyInsufficient = false
+
+        println("\nPantryManager: Attempting to subtract ingredients for recipe '${recipe.name}'.")
+
+        recipe.ingredients.forEach { recipeIngredient -> // Iterate through ingredients in the cooked recipe
+            // Find the matching ingredient in the current pantry list by name
+            val pantryItemIndex = updatedPantryList.indexOfFirst { it.name == recipeIngredient.name }
+
+            if (pantryItemIndex != -1) {
+                val pantryItem = updatedPantryList[pantryItemIndex]
+
+                // Convert the recipe's ingredient quantity to the pantry item's default unit
+                val quantityUsedInPantryUnit = try {
+                    recipeIngredient.quantity.convert(
+                        from = recipeIngredient.unit,
+                        to = when (pantryItem.defaultUnit) {
+                            "g" -> IngredientUnit.WeightUnit.Gram
+                            "kg" -> IngredientUnit.WeightUnit.Kilogram
+                            "oz" -> IngredientUnit.WeightUnit.Ounce
+                            "lb" -> IngredientUnit.WeightUnit.Pound
+                            "ml" -> IngredientUnit.VolumeUnit.Milliliter
+                            "L" -> IngredientUnit.VolumeUnit.Liter
+                            "tsp" -> IngredientUnit.VolumeUnit.Teaspoon
+                            "tbsp" -> IngredientUnit.VolumeUnit.Tablespoon
+                            "cup" -> IngredientUnit.VolumeUnit.Cup
+                            "piece" -> IngredientUnit.CountUnit.Piece
+                            "slice" -> IngredientUnit.CountUnit.Slice
+                            "pinch" -> IngredientUnit.CountUnit.Pinch
+                            "dash" -> IngredientUnit.CountUnit.Dash
+                            // Add more unit mappings as per your IngredientUnit definitions
+                            else -> throw IllegalArgumentException("Unknown pantry default unit: ${pantryItem.defaultUnit}")
+                        }
+                    )
+                } catch (e: Exception) {
+                    println("PantryManager Warning: Could not convert ${recipeIngredient.quantity} ${recipeIngredient.unit.shortName} of ${recipeIngredient.name} to ${pantryItem.defaultUnit} for subtraction: ${e.message}. Skipping this ingredient.")
+                    return@forEach // Skip to the next ingredient in the recipe
+                }
+
+                if (pantryItem.quantity >= quantityUsedInPantryUnit) {
+                    // Enough stock in pantry, subtract the quantity
+                    val newQuantity = pantryItem.quantity - quantityUsedInPantryUnit
+                    updatedPantryList[pantryItemIndex] = pantryItem.copy(quantity = newQuantity)
+                    println("PantryManager: Subtracted ${quantityUsedInPantryUnit.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit} of ${recipeIngredient.name}. New pantry stock: ${newQuantity.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}.")
+                } else {
+                    // Not enough stock in pantry
+                    println("PantryManager Warning: Insufficient stock for ${recipeIngredient.name}. Needed: ${quantityUsedInPantryUnit.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}, Available: ${pantryItem.quantity.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}. Skipping subtraction for this item.")
+                    anyInsufficient = true
+                }
+            } else {
+                // Ingredient not found in pantry
+                println("PantryManager Warning: Ingredient '${recipeIngredient.name}' from recipe not found in pantry. Skipping subtraction for this item.")
+            }
+        }
+
+        if (anyInsufficient) {
+            println("PantryManager: Note: Some ingredients for recipe '${recipe.name}' could not be fully subtracted from pantry due to insufficient stock.")
+        }
+        updatedPantryList // Return the modified list, which will then be saved by the manager
+    }
+    println("PantryManager: Finished processing ingredient subtraction for recipe '${recipe.name}'.")
+    // Optionally, you could add a function to print pantry stock here for debugging
+    // printCurrentPantryStock()
+}
+
+// Small helper for cleaner logging of Doubles
+fun Double.roundToDecimalPlaces(places: Int): Double {
+    val multiplier = 10.0.pow(places)
+    return round(this * multiplier) / multiplier
 }
