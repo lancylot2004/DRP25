@@ -17,11 +17,8 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.query.request.SelectRequestBuilder
-import io.github.jan.supabase.realtime.realtime
-import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.PostgresAction
-import io.github.jan.supabase.realtime.RealtimeChannel
-import io.github.jan.supabase.realtime.RealtimeChannel.Companion
+import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.decodeOldRecord
 import io.github.jan.supabase.realtime.decodeRecord
@@ -32,25 +29,17 @@ import io.ktor.client.request.get
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration.Companion.seconds
 
@@ -145,6 +134,7 @@ object Client {
             emptyList<Recipe>()
         },
     )
+
     // / Fetch all recipes in the database
     suspend fun fetchAllRecipes(): List<Recipe> = runCatching {
         supabaseClient
@@ -158,7 +148,6 @@ object Client {
             emptyList<Recipe>()
         },
     )
-
 
     // / Fetch saved recipes in the database
     suspend fun fetchSavedRecipes(): List<Recipe> {
@@ -424,34 +413,37 @@ object Client {
     private var recipesSubscriptionActive = false
 
     // Modified subscription functions that update StateFlows
-    suspend fun subscribeToAllComments(): Unit {
+    suspend fun subscribeToAllComments() {
         if (commentsSubscriptionActive) return // Prevent duplicate subscriptions
         commentsSubscriptionActive = true
 
-        val commentsChannel = supabaseClient.channel("all_comments_updates")
-        val changes = commentsChannel.postgresChangeFlow<PostgresAction>(schema = "public.comments")
+        val commentsChannel = supabaseClient.channel("realtime:public:comments")
+        val changes = commentsChannel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "comments"
+        }
 
-        changes.onEach {
-            when (it) {
-                is PostgresAction.Insert -> {
-                    val newComment = it.decodeRecord<Comment>()
-                    _allComments.value += newComment
-                }
-                is PostgresAction.Update -> {
-                    val updatedComment = it.decodeRecord<Comment>()
-                    _allComments.value = _allComments.value.map { comment ->
-                        if (comment.id == updatedComment.id) updatedComment else comment
+        changes
+            .onEach {
+                when (it) {
+                    is PostgresAction.Insert -> {
+                        val newComment = it.decodeRecord<Comment>()
+                        _allComments.value += newComment
                     }
-                }
-                is PostgresAction.Delete -> {
-                    val deletedComment = it.decodeOldRecord<Comment>()
-                    _allComments.value = _allComments.value.filter { comment ->
-                        comment.id != deletedComment.id
+                    is PostgresAction.Update -> {
+                        val updatedComment = it.decodeRecord<Comment>()
+                        _allComments.value = _allComments.value.map { comment ->
+                            if (comment.id == updatedComment.id) updatedComment else comment
+                        }
                     }
+                    is PostgresAction.Delete -> {
+                        val deletedComment = it.decodeOldRecord<Comment>()
+                        _allComments.value = _allComments.value.filter { comment ->
+                            comment.id != deletedComment.id
+                        }
+                    }
+                    else -> println("Unknown comment action")
                 }
-                else -> println("Unknown comment action")
-            }
-        }.launchIn(CoroutineScope(Dispatchers.IO))
+            }.launchIn(CoroutineScope(Dispatchers.IO))
 
         commentsChannel.subscribe()
 
@@ -463,34 +455,37 @@ object Client {
         }
     }
 
-    suspend fun subscribeToAllRecipes(): Unit {
+    suspend fun subscribeToAllRecipes() {
         if (recipesSubscriptionActive) return // Prevent duplicate subscriptions
         recipesSubscriptionActive = true
 
-        val recipeChannel = supabaseClient.channel("all_recipe_updates")
-        val changes = recipeChannel.postgresChangeFlow<PostgresAction>(schema = "public.recipes_dup")
+        val recipeChannel = supabaseClient.channel("realtime:public:recipes_dup")
+        val changes = recipeChannel.postgresChangeFlow<PostgresAction>(schema = "public") {
+            table = "recipes_dup"
+        }
 
-        changes.onEach {
-            when (it) {
-                is PostgresAction.Insert -> {
-                    val newRecipe = it.decodeRecord<Recipe>()
-                    _allRecipes.value += newRecipe
-                }
-                is PostgresAction.Update -> {
-                    val updatedRecipe = it.decodeRecord<Recipe>()
-                    _allRecipes.value = _allRecipes.value.map { recipe ->
-                        if (recipe.id == updatedRecipe.id) updatedRecipe else recipe
+        changes
+            .onEach {
+                when (it) {
+                    is PostgresAction.Insert -> {
+                        val newRecipe = it.decodeRecord<Recipe>()
+                        _allRecipes.value += newRecipe
                     }
-                }
-                is PostgresAction.Delete -> {
-                    val deletedRecipe = it.decodeOldRecord<Recipe>()
-                    _allRecipes.value = _allRecipes.value.filter { recipe ->
-                        recipe.id != deletedRecipe.id
+                    is PostgresAction.Update -> {
+                        val updatedRecipe = it.decodeRecord<Recipe>()
+                        _allRecipes.value = _allRecipes.value.map { recipe ->
+                            if (recipe.id == updatedRecipe.id) updatedRecipe else recipe
+                        }
                     }
+                    is PostgresAction.Delete -> {
+                        val deletedRecipe = it.decodeOldRecord<Recipe>()
+                        _allRecipes.value = _allRecipes.value.filter { recipe ->
+                            recipe.id != deletedRecipe.id
+                        }
+                    }
+                    else -> println("Unknown recipe action")
                 }
-                else -> println("Unknown recipe action")
-            }
-        }.launchIn(CoroutineScope(Dispatchers.IO))
+            }.launchIn(CoroutineScope(Dispatchers.IO))
 
         recipeChannel.subscribe()
 
@@ -503,28 +498,29 @@ object Client {
     }
 
     // Helper function to get comments for a specific recipe
-    fun getCommentsForRecipe(recipeId: String): StateFlow<List<Comment>> {
-        return allComments.map { comments ->
-            comments.filter { it.recipe_id == recipeId }
-                .sortedWith(compareBy<Comment> { it.parent_comment_id ?: it.id }
-                    .thenBy { it.created_at })
+    fun getCommentsForRecipe(recipeId: String): StateFlow<List<Comment>> = allComments
+        .map { comments ->
+            comments
+                .filter { it.recipe_id == recipeId }
+                .sortedWith(
+                    compareBy<Comment> { it.parent_comment_id ?: it.id }
+                        .thenBy { it.created_at },
+                )
         }.stateIn(
             scope = CoroutineScope(Dispatchers.IO),
             started = SharingStarted.WhileSubscribed(),
-            initialValue = emptyList()
+            initialValue = emptyList(),
         )
-    }
 
     // Helper function to get a specific recipe
-    fun getRecipe(recipeId: String): StateFlow<Recipe?> {
-        return allRecipes.map { recipes ->
+    fun getRecipe(recipeId: String): StateFlow<Recipe?> = allRecipes
+        .map { recipes ->
             recipes.find { it.id == recipeId }
         }.stateIn(
             scope = CoroutineScope(Dispatchers.IO),
             started = SharingStarted.WhileSubscribed(),
-            initialValue = null
+            initialValue = null,
         )
-    }
 
     private val _savedRecipeIds = MutableStateFlow<Set<String>>(emptySet())
     val savedRecipeIds: StateFlow<Set<String>> = _savedRecipeIds.asStateFlow()
@@ -532,26 +528,27 @@ object Client {
     private var savedRecipesSubscriptionActive = false
 
     // Subscribe to saved recipes changes
-    suspend fun subscribeToSavedRecipes(): Unit {
+    suspend fun subscribeToSavedRecipes() {
         if (savedRecipesSubscriptionActive) return
         savedRecipesSubscriptionActive = true
 
         val savedRecipesChannel = supabaseClient.channel("saved_recipes_updates")
         val changes = savedRecipesChannel.postgresChangeFlow<PostgresAction>(schema = "public.saved_recipes")
 
-        changes.onEach {
-            when (it) {
-                is PostgresAction.Insert -> {
-                    val newSavedRecipe = it.decodeRecord<RecipeID>()
-                    _savedRecipeIds.value += newSavedRecipe.recipe_id
+        changes
+            .onEach {
+                when (it) {
+                    is PostgresAction.Insert -> {
+                        val newSavedRecipe = it.decodeRecord<RecipeID>()
+                        _savedRecipeIds.value += newSavedRecipe.recipe_id
+                    }
+                    is PostgresAction.Delete -> {
+                        val deletedSavedRecipe = it.decodeOldRecord<RecipeID>()
+                        _savedRecipeIds.value -= deletedSavedRecipe.recipe_id
+                    }
+                    else -> println("Unknown saved recipe action")
                 }
-                is PostgresAction.Delete -> {
-                    val deletedSavedRecipe = it.decodeOldRecord<RecipeID>()
-                    _savedRecipeIds.value -= deletedSavedRecipe.recipe_id
-                }
-                else -> println("Unknown saved recipe action")
-            }
-        }.launchIn(CoroutineScope(Dispatchers.IO))
+            }.launchIn(CoroutineScope(Dispatchers.IO))
 
         savedRecipesChannel.subscribe()
 
@@ -570,32 +567,29 @@ object Client {
     // Get saved recipes in real-time
     val savedRecipes: StateFlow<List<Recipe>> = combine(
         allRecipes,
-        savedRecipeIds
+        savedRecipeIds,
     ) { recipes, savedIds ->
         recipes.filter { savedIds.contains(it.id) }
     }.stateIn(
         scope = CoroutineScope(Dispatchers.IO),
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
+        initialValue = emptyList(),
     )
 
     // Function to check if a recipe is saved
-    fun isRecipeSaved(recipeId: String): StateFlow<Boolean> {
-        return savedRecipeIds.map { it.contains(recipeId) }
-            .stateIn(
-                scope = CoroutineScope(Dispatchers.IO),
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = false
-            )
-    }
+    fun isRecipeSaved(recipeId: String): StateFlow<Boolean> = savedRecipeIds
+        .map { it.contains(recipeId) }
+        .stateIn(
+            scope = CoroutineScope(Dispatchers.IO),
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false,
+        )
 
     // Updated save/unsave functions for real-time
-    suspend fun toggleSaveRecipe(recipeId: String): Boolean {
-        return if (_savedRecipeIds.value.contains(recipeId)) {
-            unsaveRecipe(recipeId)
-        } else {
-            saveRecipe(recipeId)
-        }
+    suspend fun toggleSaveRecipe(recipeId: String): Boolean = if (_savedRecipeIds.value.contains(recipeId)) {
+        unsaveRecipe(recipeId)
+    } else {
+        saveRecipe(recipeId)
     }
 
     suspend fun saveRecipe(recipeId: String): Boolean = runCatching {
@@ -621,29 +615,27 @@ object Client {
     }
 
     // Helper function to get real-time updates for a specific recipe
-    fun getRecipeFlow(recipeId: String): StateFlow<Recipe?> {
-        return allRecipes.map { recipes ->
+    fun getRecipeFlow(recipeId: String): StateFlow<Recipe?> = allRecipes
+        .map { recipes ->
             recipes.find { it.id == recipeId }
         }.stateIn(
             scope = CoroutineScope(Dispatchers.IO),
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
+            initialValue = null,
         )
-    }
 
     // Helper function to get comments for a specific recipe with proper sorting
-    fun getCommentsForRecipeFlow(recipeId: String): StateFlow<List<Comment>> {
-        return allComments.map { comments ->
+    fun getCommentsForRecipeFlow(recipeId: String): StateFlow<List<Comment>> = allComments
+        .map { comments ->
             comments
                 .filter { it.recipe_id == recipeId }
                 .sortedWith(
                     compareBy<Comment> { it.parent_comment_id ?: it.id }
-                        .thenBy { it.created_at }
+                        .thenBy { it.created_at },
                 )
         }.stateIn(
             scope = CoroutineScope(Dispatchers.IO),
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = emptyList(),
         )
-    }
 }
