@@ -8,7 +8,9 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.DrawableResource
 import dev.lancy.drp25.shared.resources.Res
 import dev.lancy.drp25.shared.resources.allDrawableResources
+import kotlinx.serialization.Serializable
 
+@Serializable
 enum class IngredientIcon(val resourceKey: String) {
     ALCOHOL("ingredient_alcohol"),
     ALMOND("ingredient_almond"),
@@ -136,6 +138,7 @@ enum class IngredientIcon(val resourceKey: String) {
     YOGURT("ingredient_yogurt")
 }
 
+@Serializable
 enum class UtensilIcon(val resourceKey: String) {
     CLEAVER_BUTCHER("utensil_cleaver_butcher"),
     COOK_KNIFE("utensil_cook_knife"),

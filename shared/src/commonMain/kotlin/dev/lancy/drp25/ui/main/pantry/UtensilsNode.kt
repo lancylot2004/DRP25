@@ -18,6 +18,9 @@ import com.composables.icons.lucide.Utensils
 import com.composables.icons.lucide.Check
 import dev.lancy.drp25.utilities.UtensilIcon
 import dev.lancy.drp25.utilities.UtensilIconView
+import dev.lancy.drp25.utilities.rememberPantryUtensilsManager
+import dev.lancy.drp25.utilities.PersistentUtensilSelection
+import kotlinx.datetime.toLocalDateTime
 
 @Composable
 fun UtensilsToolbar(
@@ -72,7 +75,20 @@ fun UtensilsToolbar(
 fun UtensilsScreen(
     modifier: Modifier = Modifier // Removed onDismiss parameter
 ) {
-    var selectedUtensils by remember { mutableStateOf(setOf<UtensilIcon>()) }
+    // Use the proper utensils manager with PersistentUtensilSelection
+    val utensilsManager = rememberPantryUtensilsManager()
+    val persistentUtensils by utensilsManager.state.collectAsState()
+
+    // Convert PersistentUtensilSelection to Set<UtensilIcon>
+    val selectedUtensils = remember(persistentUtensils) {
+        persistentUtensils
+            .filter { it.isAvailable }
+            .mapNotNull { persistent ->
+                try { UtensilIcon.valueOf(persistent.utensilName) }
+                catch (e: IllegalArgumentException) { null }
+            }
+            .toSet()
+    }
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -152,10 +168,34 @@ fun UtensilsScreen(
                                         utensil = utensil,
                                         isSelected = selectedUtensils.contains(utensil),
                                         onSelectionChange = { isSelected ->
-                                            selectedUtensils = if (isSelected) {
-                                                selectedUtensils + utensil
-                                            } else {
-                                                selectedUtensils - utensil
+                                            // Update using PersistentUtensilSelection structure
+                                            utensilsManager.update {
+                                                val existingIndex = this.indexOfFirst {
+                                                    it.utensilName == utensil.name
+                                                }
+
+                                                if (existingIndex >= 0) {
+                                                    // Update existing selection
+                                                    this.toMutableList().apply {
+                                                        set(existingIndex, this[existingIndex].copy(
+                                                            isAvailable = isSelected,
+                                                            lastUsed = kotlinx.datetime.Clock.System.now()
+                                                                .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                                                                .toString()
+                                                        ))
+                                                    }
+                                                } else if (isSelected) {
+                                                    // Add new selection
+                                                    this + PersistentUtensilSelection(
+                                                        utensilName = utensil.name,
+                                                        isAvailable = true,
+                                                        lastUsed = kotlinx.datetime.Clock.System.now()
+                                                            .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+                                                            .toString()
+                                                    )
+                                                } else {
+                                                    this
+                                                }
                                             }
                                         },
                                         modifier = Modifier.weight(1f)

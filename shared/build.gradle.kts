@@ -113,6 +113,8 @@ kotlin {
             // Supabase | https://github.com/supabase/supabase-kt | Apache-2.0
             implementation(libs.supabase.postgrest)
             implementation(libs.supabase.kt)
+            implementation(libs.supabase.realtime)
+            //implementation(libs.supabase.serializer)
             implementation(libs.storage.kt)
 
             // Multiplatform Settings | https://github.com/russhwolf/multiplatform-settings | Apache-2.0

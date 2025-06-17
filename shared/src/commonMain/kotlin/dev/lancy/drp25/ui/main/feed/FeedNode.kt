@@ -68,6 +68,7 @@ class FeedNode(
     parent: MainNode,
 ) : LeafNode(nodeContext),
     NavConsumer<MainNode.MainTarget, MainNode> by NavConsumerImpl(parent) {
+
     private fun CoroutineScope.updateRecipes(
         filterValues: FilterValues,
         onUpdate: (List<Recipe>) -> Unit,
@@ -94,9 +95,13 @@ class FeedNode(
         val scope = rememberCoroutineScope()
 
         var recipes by remember { mutableStateOf<List<Recipe>>(emptyList()) }
+        var isInitialLoad by remember { mutableStateOf(true) }
 
         val filtersManager = rememberFiltersManager()
         val filterValues by filtersManager.state.collectAsState()
+
+        // Subscribe to real-time recipe updates
+        val allRecipes by Client.allRecipes.collectAsState()
 
         // SnapFlingBehaviour for Slower Swiping, one at a time
         val defaultSnapFlingBehavior = rememberSnapFlingBehavior(lazyListState = scrollState)
@@ -110,8 +115,25 @@ class FeedNode(
             }
         }
 
-        LaunchedEffect(this.lifecycleScope) {
-            scope.updateRecipes(filterValues) { recipes = it }
+        // Initial load with filters
+        LaunchedEffect(filterValues) {
+            scope.updateRecipes(filterValues) {
+                recipes = it
+                isInitialLoad = false
+            }
+        }
+
+        // Initialize real-time subscriptions
+        LaunchedEffect(Unit) {
+            Client.subscribeToAllRecipes()
+        }
+
+        // Update recipes when real-time updates occur (after initial load)
+        LaunchedEffect(allRecipes, filterValues) {
+            if (!isInitialLoad && allRecipes.isNotEmpty()) {
+                // Re-fetch with filters when recipes change in real-time
+                scope.updateRecipes(filterValues) { recipes = it }
+            }
         }
 
         Box(Modifier.fillMaxSize()) {
@@ -138,11 +160,14 @@ class FeedNode(
             LazyRow(
                 modifier = Modifier.fillMaxSize().padding(top = Size.IconMedium + Size.Padding),
                 state = scrollState,
-                flingBehavior = customFlingBehavior, //rememberSnapFlingBehavior(scrollState),
+                flingBehavior = customFlingBehavior,
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                items(recipes) { recipe ->
+                items(
+                    items = recipes,
+                    key = { it.id } // Important for proper recomposition
+                ) { recipe ->
                     FeedCard(
                         modifier = Modifier
                             .size(ScreenSize.width, ScreenSize.height)
@@ -152,10 +177,10 @@ class FeedNode(
                     )
                 }
 
-                if (recipes.isEmpty()) {
+                if (recipes.isEmpty() && !isInitialLoad) {
                     item {
                         Text(
-                            text = "No recipes available",
+                            text = "No recipes match your filters",
                             color = Color.White,
                             style = Typography.bodyMedium,
                             textAlign = TextAlign.Center,
@@ -172,7 +197,7 @@ class FeedNode(
                     onDismissRequest = {
                         scope.launch {
                             sheetState.hide()
-                            scope.updateRecipes(filtersManager.state.value) { recipes = it }
+                            // Filters will automatically trigger a re-fetch via LaunchedEffect
                         }
                     },
                     dragHandle = {},

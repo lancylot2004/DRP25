@@ -247,29 +247,6 @@ fun rememberAllergenAvoidancesManager(): PersistenceManager<Set<Allergens>> = re
     }
 }
 
-// Composable Persistence Manager for Daily Cooking Activity
-@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
-@Composable
-fun rememberDailyCookingActivityManager(): PersistenceManager<Map<String, Int>> = remember {
-    object : PersistenceManager<Map<String, Int>> {
-        private val _state = MutableStateFlow(
-            settings.decodeValueOrNull<Map<String, Int>>(PREF_KEY_DAILY_COOKING_ACTIVITY)
-                ?: emptyMap<String, Int>().also { settings.encodeValue(PREF_KEY_DAILY_COOKING_ACTIVITY, it) }
-        )
-        override val state: StateFlow<Map<String, Int>> = _state.asStateFlow()
-
-        override fun update(transform: Map<String, Int>.() -> Map<String, Int>) {
-            _state.update { current ->
-                val updated = current.transform()
-                if (updated != current) {
-                    settings.encodeValue(PREF_KEY_DAILY_COOKING_ACTIVITY, updated)
-                }
-                updated
-            }
-        }
-    }
-}
-
 // Helper function to manage state for UI toggles
 @Composable
 fun <T : Any> rememberPreferenceState(manager: PersistenceManager<T>): Pair<T, (T) -> Unit> {
@@ -313,7 +290,7 @@ fun Settings.setPreferredCountSystem(system: MeasurementSystem) {
 
 @OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
 fun Settings.getUserName(): String =
-    decodeValueOrNull<String>(PREF_KEY_USER_NAME) ?: "DRP 25 User"
+    decodeValueOrNull<String>(PREF_KEY_USER_NAME) ?: "User"
 
 @OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
 fun Settings.setUserName(name: String) {
@@ -363,13 +340,4 @@ fun Settings.getAllergenAvoidances(): Set<Allergens> =
 @OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
 fun Settings.setAllergenAvoidances(allergens: Set<Allergens>) {
     encodeValue(PREF_KEY_ALLERGEN_AVOIDANCES, allergens.toList())
-}
-
-@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
-fun Settings.getDailyCookingActivity(): Map<String, Int> =
-    decodeValueOrNull<Map<String, Int>>(PREF_KEY_DAILY_COOKING_ACTIVITY) ?: emptyMap()
-
-@OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
-fun Settings.setDailyCookingActivity(activity: Map<String, Int>) {
-    encodeValue(PREF_KEY_DAILY_COOKING_ACTIVITY, activity)
 }

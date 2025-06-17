@@ -31,8 +31,8 @@ data class Recipe(
 ) : NavTarget,
     Parcelable
 
-@Serializable
 @Parcelize
+@Serializable
 class Step(
     var description: String = "",
     var videoTimestamp: Int? = null,

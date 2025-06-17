@@ -2,12 +2,11 @@
 package dev.lancy.drp25.ui.main.pantry
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -24,17 +23,12 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
@@ -45,33 +39,63 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Cookie
-import com.composables.icons.lucide.Utensils
 import dev.lancy.drp25.data.IngredientItem
 import dev.lancy.drp25.data.IngredientLocation
 import dev.lancy.drp25.data.IngredientType
 import dev.lancy.drp25.data.formatQuantity
 import dev.lancy.drp25.utilities.IngredientIconView
+import dev.lancy.drp25.utilities.rememberPantryIngredientsManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import dev.lancy.drp25.utilities.updateIngredient
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.foundation.shape.CircleShape
+import com.composables.icons.lucide.ScanLine
+import dev.lancy.drp25.utilities.fetchProductAndUpdatePantry
+import dev.lancy.drp25.utilities.httpClient
+// Updated portion of IngredientsNode.kt - replace the scanner section in your existing file
 
 @Composable
 fun IngredientsNode(
     selectedTabIndex: Int,
-    allIngredients: SnapshotStateList<IngredientItem>,
-    onQuantityChange: (IngredientItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val filteredIngredients = when (selectedTabIndex) {
-        0 -> allIngredients.filter { it.location == IngredientLocation.Fridge }
-        1 -> allIngredients.filter { it.location == IngredientLocation.Freezer }
-        else -> allIngredients.toList()
+    val ingredientsManager = rememberPantryIngredientsManager()
+    val persistentIngredients by ingredientsManager.state.collectAsState()
+
+    // State for showing QR scanner
+    var showScanner by remember { mutableStateOf(false) }
+
+    val saveIngredient = remember {
+        { ingredient: IngredientItem ->
+            ingredientsManager.updateIngredient(ingredient)
+        }
     }
 
-    val groupedByType = filteredIngredients
-        .groupBy { it.type }
-        .entries
-        .sortedBy { it.key.order }
+    val filteredIngredients = remember(selectedTabIndex, persistentIngredients) {
+        persistentIngredients.filter {
+            when (selectedTabIndex) {
+                0 -> it.location == IngredientLocation.Fridge
+                1 -> it.location == IngredientLocation.Freezer
+                else -> true
+            }
+        }
+    }
 
-    val headerPositions = remember(filteredIngredients) {
+    val groupedByType = remember(filteredIngredients) {
+        filteredIngredients
+            .groupBy { it.type }
+            .entries
+            .sortedBy { it.key.order }
+    }
+
+    val headerPositions = remember(groupedByType) {
         mutableListOf<Pair<IngredientType, Int>>().apply {
             var index = 0
             groupedByType.forEach { (type, items) ->
@@ -84,125 +108,183 @@ fun IngredientsNode(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(selectedTabIndex) {
-        listState.animateScrollToItem(0)
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Lucide.Cookie,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-                Text(
-                    text = "Pantry",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Lucide.Cookie,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Text(
+                        text = "Pantry",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
 
-        // Category Buttons
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            headerPositions.forEach { (type, position) ->
-                TextButton(onClick = {
-                    coroutineScope.launch { listState.animateScrollToItem(position) }
-                }) {
-                    Text(text = type.displayName)
+                // Scan Items Button (updated for multi-scan)
+                OutlinedButton(
+                    onClick = { showScanner = true },
+                    modifier = Modifier.height(40.dp),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Lucide.ScanLine,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Scan Items",
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
-        }
 
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(0.dp, 0.dp, 0.dp, 164.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            groupedByType.forEach { (type, ingredients) ->
-                if (ingredients.isNotEmpty()) {
-                    item {
-                        Surface(
-                            tonalElevation = 2.dp,
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 6.dp, horizontal = 12.dp)
-                        ) {
-                            Text(
-                                text = type.displayName,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 20.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                headerPositions.forEach { (type, position) ->
+                    ElevatedButton(
+                        onClick = {
+                            coroutineScope.launch { listState.animateScrollToItem(position) }
+                        },
+                        modifier = Modifier.height(36.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        elevation = ButtonDefaults.elevatedButtonElevation(
+                            defaultElevation = 2.dp,
+                            pressedElevation = 0.dp
+                        )
+                    ) {
+                        Text(
+                            text = type.displayName,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(0.dp, 0.dp, 0.dp, 144.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                groupedByType.forEach { (type, ingredients) ->
+                    if (ingredients.isNotEmpty()) {
+                        item(key = type.displayName) {
+                            Surface(
+                                tonalElevation = 2.dp,
+                                shape = RoundedCornerShape(8.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp, horizontal = 12.dp)
+                            ) {
+                                Text(
+                                    text = type.displayName,
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 20.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(
+                                        vertical = 12.dp,
+                                        horizontal = 16.dp
+                                    )
+                                )
+                            }
+                        }
+                        items(items = ingredients, key = { it.name }) { ingredient ->
+                            IngredientRow(
+                                ingredient = ingredient,
+                                onSave = saveIngredient
+                            )
+                            if (ingredient != ingredients.last()) HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant
                             )
                         }
                     }
-                    itemsIndexed(ingredients) { index, ingredient ->
-                        IngredientRow(
-                            ingredient = ingredient,
-                            onQuantityChange = { newQty ->
-                                onQuantityChange(ingredient.copy(quantity = newQty))
-                            }
-                        )
-                        if (index < ingredients.lastIndex) HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            thickness = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                    }
                 }
+            }
+        }
+
+        // Multi-Scan QR Scanner Overlay
+        if (showScanner) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
+            ) {
+                QRScannerView(
+                    ingredientsManager = ingredientsManager,
+                    onClose = { showScanner = false }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun IngredientRow(
+fun IngredientRow(
     ingredient: IngredientItem,
-    onQuantityChange: (Double) -> Unit,
+    onSave: (IngredientItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var quantityText by remember(ingredient.quantity) {
-        mutableStateOf(ingredient.quantity.formatQuantity())
-    }
-    var isEditing by remember { mutableStateOf(false) }
-    val focusManager = LocalFocusManager.current
+    // Local state for this ingredient's UI display - initialized once and then independent
+    var currentQuantity by remember { mutableStateOf(ingredient.quantity) }
+    var quantityText by remember { mutableStateOf(ingredient.quantity.formatQuantity()) }
 
-    // Update text when ingredient quantity changes externally (from +/- buttons)
-    LaunchedEffect(ingredient.quantity) {
-        if (!isEditing) {
-            quantityText = ingredient.quantity.formatQuantity()
+    var isTextFieldFocused by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+    val saveDebounceScope = rememberCoroutineScope()
+    var saveJob: Job? by remember { mutableStateOf(null) }
+
+    fun debounceAndSave(newQuantity: Double) {
+        saveJob?.cancel()
+        saveJob = saveDebounceScope.launch {
+            delay(150) // Debounce delay for saving to persistence
+            val updatedIngredient = ingredient.copy(quantity = newQuantity)
+            onSave(updatedIngredient)
         }
     }
 
-    fun commitQuantityChange() {
-        val newQty = quantityText.toDoubleOrNull()?.coerceAtLeast(0.0) ?: ingredient.quantity
-        onQuantityChange(newQty)
+    fun updateQuantity(newQuantity: Double) {
+        currentQuantity = newQuantity
+        quantityText = newQuantity.formatQuantity()
+        debounceAndSave(newQuantity)
+    }
+
+    fun commitTextChange() {
+        saveJob?.cancel()
+        val newQty = quantityText.toDoubleOrNull()?.coerceAtLeast(0.0) ?: currentQuantity
+        currentQuantity = newQty
         quantityText = newQty.formatQuantity()
-        isEditing = false
-        focusManager.clearFocus()
+        val updatedIngredient = ingredient.copy(quantity = currentQuantity)
+        onSave(updatedIngredient)
     }
 
     Row(
@@ -229,58 +311,71 @@ private fun IngredientRow(
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.width(180.dp)
+            modifier = Modifier.width(240.dp)
         ) {
             IconButton(
                 onClick = {
-                    val newQty = (ingredient.quantity - ingredient.incrementAmount).coerceAtLeast(0.0)
-                    onQuantityChange(newQty)
+                    // Direct update on click for instant UI feedback
+                    val newQty = (currentQuantity - ingredient.incrementAmount).coerceAtLeast(0.0)
+                    updateQuantity(newQty)
                 },
-                enabled = ingredient.quantity > 0,
+                enabled = currentQuantity > 0,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(imageVector = Icons.Filled.Remove, contentDescription = null)
             }
 
-            Box(modifier = Modifier.width(60.dp)) {
-                if (isEditing) {
-                    OutlinedTextField(
-                        value = quantityText,
-                        onValueChange = { text ->
-                            if (text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                quantityText = text
+            Box(modifier = Modifier.width(120.dp)) {
+                OutlinedTextField(
+                    value = quantityText,
+                    onValueChange = { text ->
+                        // Only update text while typing, don't update currentQuantity until valid
+                        if (text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            quantityText = text
+                            val parsedValue = text.toDoubleOrNull()
+                            if (parsedValue != null) {
+                                currentQuantity = parsedValue
+                                debounceAndSave(parsedValue)
                             }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        keyboardActions = KeyboardActions(
-                            onDone = { commitQuantityChange() }
-                        ),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable {
-                                isEditing = true
+                        }
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            commitTextChange()
+                            focusManager.clearFocus()
+                        }
+                    ),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    ),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        cursorColor = MaterialTheme.colorScheme.primary,
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .onFocusChanged { focusState ->
+                            isTextFieldFocused = focusState.isFocused
+                            if (!focusState.isFocused) {
+                                commitTextChange()
                             }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = quantityText,
-                            style = MaterialTheme.typography.bodyLarge,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
+                        }
+                )
             }
 
             IconButton(
                 onClick = {
-                    val newQty = ingredient.quantity + ingredient.incrementAmount
-                    onQuantityChange(newQty)
+                    // Direct update on click for instant UI feedback
+                    val newQty = currentQuantity + ingredient.incrementAmount
+                    updateQuantity(newQty)
                 },
                 modifier = Modifier.size(40.dp)
             ) {

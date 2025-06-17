@@ -1,9 +1,11 @@
 package dev.lancy.drp25.data
 
 import dev.lancy.drp25.utilities.IngredientIcon
+import kotlinx.serialization.Serializable
 import kotlin.math.round
 import kotlin.math.roundToInt
 
+@Serializable
 enum class IngredientLocation {
     Fridge,
     Freezer,
@@ -11,6 +13,7 @@ enum class IngredientLocation {
 }
 
 // Compacted and reordered categories by common usage
+@Serializable
 enum class IngredientType(val displayName: String, val order: Int) {
     ESSENTIALS("Essentials", 1),
     VEGETABLES("Vegetables", 2),
@@ -22,6 +25,7 @@ enum class IngredientType(val displayName: String, val order: Int) {
     LIQUIDS("Liquids", 8)
 }
 
+@Serializable
 data class IngredientItem(
     val icon: IngredientIcon,
     val name: String,
