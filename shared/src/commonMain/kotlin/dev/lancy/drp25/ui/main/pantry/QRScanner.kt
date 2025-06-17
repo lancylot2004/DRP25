@@ -47,6 +47,7 @@ fun QRScannerView(
     var isScanning by remember { mutableStateOf(true) }
     var acceptResults by remember { mutableStateOf(true) }
     var scanMessage by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
     val currentIngredients by ingredientsManager.state.collectAsState()
@@ -88,7 +89,22 @@ fun QRScannerView(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.width(48.dp)) // Balance the layout
+                // Scanner toggle button
+                IconButton(
+                    onClick = { isScanning = !isScanning },
+                    modifier = Modifier
+                        .background(
+                            color = if (isScanning) ColourScheme.primary else ColourScheme.surfaceVariant,
+                            shape = CircleShape,
+                        ),
+                ) {
+                    Icon(
+                        imageVector = if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isScanning) "Pause scanner" else "Resume scanner",
+                        tint = if (isScanning) ColourScheme.onPrimary else ColourScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             }
 
             // Scanner view
@@ -104,28 +120,41 @@ fun QRScannerView(
                     ScannerWithPermissions(
                         modifier = Modifier.fillMaxSize(),
                         onScanned = onScanned@{ barcode ->
-                            scanMessage = "Scanning..."
-                            if (!acceptResults) return@onScanned true
+                            if (!acceptResults || isProcessing) return@onScanned true
+
+                            // Prevent rapid successive scans of the same barcode
+                            val recentScan = scannedItems.any {
+                                it.barcode == barcode &&
+                                        (Clock.System.now().toEpochMilliseconds() - it.timestamp) < 3000
+                            }
+                            if (recentScan) return@onScanned true
+
                             acceptResults = false
+                            isProcessing = true
+                            scanMessage = "Scanning..."
 
                             coroutineScope.launch {
-                                delay(1000L)
-                                acceptResults = true
-
-                                fetchProductForMultiScan(
-                                    barcode = barcode,
-                                    httpClient = httpClient,
-                                    currentIngredients = currentIngredients,
-                                ) { result ->
-                                    scanMessage = when (result) {
-                                        is ScanResult.Success -> {
-                                            onScanSuccess(scannedItems, result, barcode)
-                                        }
-
-                                        is ScanResult.Error -> {
-                                            result.message
+                                try {
+                                    fetchProductForMultiScan(
+                                        barcode = barcode,
+                                        httpClient = httpClient,
+                                        currentIngredients = currentIngredients,
+                                    ) { result ->
+                                        scanMessage = when (result) {
+                                            is ScanResult.Success -> {
+                                                onScanSuccess(scannedItems, result, barcode)
+                                            }
+                                            is ScanResult.Error -> {
+                                                result.message
+                                            }
                                         }
                                     }
+                                } finally {
+                                    // Allow new scans after a short delay
+                                    delay(1500)
+                                    isProcessing = false
+                                    delay(500)
+                                    acceptResults = true
                                 }
                             }
                             true
@@ -157,11 +186,27 @@ fun QRScannerView(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Review your items below",
+                                text = "Review your items below\nTap play to continue scanning",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = ColourScheme.onSurface.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center,
                             )
                         }
+                    }
+                }
+
+                // Processing overlay
+                if (isProcessing) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(ColourScheme.surface.copy(alpha = 0.8f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = ColourScheme.primary,
+                        )
                     }
                 }
             }
@@ -173,12 +218,12 @@ fun QRScannerView(
                 exit = fadeOut() + slideOutVertically(),
             ) {
                 Card(
-                    modifier = Modifier.padding(horizontal = 16.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (scanMessage?.startsWith("✓") == true) {
-                            ColourScheme.primaryContainer
-                        } else {
-                            ColourScheme.errorContainer
+                        containerColor = when {
+                            scanMessage?.startsWith("✓") == true -> ColourScheme.primaryContainer
+                            scanMessage?.startsWith("❌") == true -> ColourScheme.errorContainer
+                            else -> ColourScheme.secondaryContainer
                         },
                     ),
                 ) {
@@ -186,16 +231,16 @@ fun QRScannerView(
                         text = scanMessage ?: "",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (scanMessage?.startsWith("✓") == true) {
-                            ColourScheme.onPrimaryContainer
-                        } else {
-                            ColourScheme.onErrorContainer
+                        color = when {
+                            scanMessage?.startsWith("✓") == true -> ColourScheme.onPrimaryContainer
+                            scanMessage?.startsWith("❌") == true -> ColourScheme.onErrorContainer
+                            else -> ColourScheme.onSecondaryContainer
                         },
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Scanned items list
             Card(
@@ -223,7 +268,10 @@ fun QRScannerView(
                         )
 
                         if (scannedItems.isNotEmpty()) {
-                            TextButton(onClick = { scannedItems.clear() }) {
+                            TextButton(onClick = {
+                                scannedItems.clear()
+                                scanMessage = "Cleared all items"
+                            }) {
                                 Text("Clear All")
                             }
                         }
@@ -235,16 +283,17 @@ fun QRScannerView(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(scannedItems, key = { it.timestamp }) { item ->
+                        items(scannedItems.reversed(), key = { it.timestamp }) { item ->
                             ScannedItemRow(
                                 item = item,
-                                onRemove = { scannedItems.removeAll { it.timestamp == item.timestamp } },
+                                onRemove = {
+                                    scannedItems.removeAll { it.timestamp == item.timestamp }
+                                    scanMessage = "Removed ${item.ingredient.name}"
+                                },
                                 onQuantityChange = { newQuantity ->
-                                    scannedItems.find { it.timestamp == item.timestamp }?.let {
-                                        val index = scannedItems.indexOf(it)
-                                        if (index != -1) {
-                                            scannedItems[index] = it.copy(quantity = newQuantity)
-                                        }
+                                    val index = scannedItems.indexOfFirst { it.timestamp == item.timestamp }
+                                    if (index != -1) {
+                                        scannedItems[index] = scannedItems[index].copy(quantity = newQuantity)
                                     }
                                 },
                             )
@@ -274,6 +323,12 @@ fun QRScannerView(
                                             style = MaterialTheme.typography.bodyLarge,
                                             color = ColourScheme.onSurface.copy(alpha = 0.6f),
                                         )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Point camera at barcode to start",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = ColourScheme.onSurface.copy(alpha = 0.5f),
+                                        )
                                     }
                                 }
                             }
@@ -299,6 +354,7 @@ fun QRScannerView(
                 Button(
                     onClick = {
                         // Add all items to pantry
+                        var addedCount = 0
                         scannedItems.forEach { item ->
                             val currentIngredient = currentIngredients.find {
                                 it.name == item.ingredient.name
@@ -308,9 +364,16 @@ fun QRScannerView(
                                     quantity = currentIngredient.quantity + item.quantity,
                                 )
                                 ingredientsManager.updateIngredient(updatedIngredient)
+                                addedCount++
                             }
                         }
-                        onClose()
+
+                        // Show success message and close
+                        scanMessage = "✓ Added $addedCount items to pantry"
+                        coroutineScope.launch {
+                            delay(1000)
+                            onClose()
+                        }
                     },
                     enabled = scannedItems.isNotEmpty(),
                     modifier = Modifier.weight(1f),
@@ -329,7 +392,7 @@ fun QRScannerView(
         // Auto-hide scan message
         LaunchedEffect(scanMessage) {
             if (scanMessage != null) {
-                kotlinx.coroutines.delay(2500)
+                delay(3000)
                 scanMessage = null
             }
         }
@@ -340,16 +403,17 @@ private fun onScanSuccess(
     existingItems: MutableList<ScannedItem>,
     result: ScanResult.Success,
     barcode: String,
-): String? {
+): String {
     val existingIndex = existingItems.indexOfFirst {
         it.ingredient.name == result.matchedIngredient.name
     }
-    val existingItem = existingItems[existingIndex]
 
     return if (existingIndex != -1) {
         // Update quantity for existing item
-        existingItems[existingIndex] =
-            existingItem.copy(quantity = existingItem.quantity + result.matchedIngredient.quantity)
+        val existingItem = existingItems[existingIndex]
+        existingItems[existingIndex] = existingItem.copy(
+            quantity = existingItem.quantity + result.quantity
+        )
         "✓ Added more ${result.matchedIngredient.name}"
     } else {
         // Add new item
@@ -402,6 +466,11 @@ fun ScannedItemRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = ColourScheme.onSurface.copy(alpha = 0.7f),
                 )
+                Text(
+                    text = "Barcode: ${item.barcode}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColourScheme.onSurface.copy(alpha = 0.5f),
+                )
             }
 
             // Quantity controls
@@ -411,7 +480,7 @@ fun ScannedItemRow(
             ) {
                 IconButton(
                     onClick = {
-                        val newQty = (item.quantity - 1).coerceAtLeast(0.5)
+                        val newQty = (item.quantity - 0.5).coerceAtLeast(0.5)
                         onQuantityChange(newQty)
                     },
                     modifier = Modifier.size(32.dp),
@@ -433,7 +502,7 @@ fun ScannedItemRow(
 
                 IconButton(
                     onClick = {
-                        onQuantityChange(item.quantity + 1)
+                        onQuantityChange(item.quantity + 0.5)
                     },
                     modifier = Modifier.size(32.dp),
                 ) {

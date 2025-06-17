@@ -58,7 +58,9 @@ object ProductMatcher {
         "cream" to Ingredients.DOUBLE_CREAM,
         "ice cream" to Ingredients.ICE_CREAM,
 
-        // Meat & Fish
+        // Eggs and poultry
+        "egg" to Ingredients.EGG,
+        "eggs" to Ingredients.EGG,
         "chicken" to Ingredients.CHICKEN_MEAT,
         "beef" to Ingredients.BEEF_MEAT,
         "pork" to Ingredients.PORK_MEAT,
@@ -174,7 +176,6 @@ object ProductMatcher {
         "pudding" to Ingredients.PUDDING,
 
         // Others
-        "egg" to Ingredients.EGG,
         "coffee" to Ingredients.COFFEE_BEANS,
         "wine" to Ingredients.WINE,
         "alcohol" to Ingredients.ALCOHOL,
@@ -187,26 +188,119 @@ object ProductMatcher {
         "falafel" to Ingredients.FALAFEL
     )
 
-    fun findMatchingIngredient(product: Product, existingIngredients: List<IngredientItem>): IngredientItem? {
-        val productName = (product.productName ?: product.productNameEn ?: product.genericName ?: "").lowercase()
+    // Common brand names and irrelevant words to filter out
+    private val brandNames = setOf(
+        "tesco", "sainsbury", "asda", "morrisons", "aldi", "lidl", "marks", "spencer",
+        "waitrose", "coop", "iceland", "farmfoods", "costco", "walmart", "target",
+        "kroger", "safeway", "whole", "foods", "trader", "joe", "organic", "fresh",
+        "free", "range", "farm", "local", "premium", "select", "choice", "value",
+        "finest", "taste", "difference", "everyday", "essential", "smart", "price",
+        "extra", "special", "own", "brand", "store", "market", "best", "quality",
+        "natural", "pure", "real", "authentic", "traditional", "classic", "original",
+        "super", "mega", "large", "small", "medium", "xl", "pack", "multipack",
+        "family", "size", "portion", "serving", "ready", "to", "eat", "cook",
+        "frozen", "chilled", "fresh", "dried", "canned", "tinned", "bottled",
+        "jar", "tube", "packet", "bag", "box", "carton", "tray", "punnet"
+    )
+
+    private val irrelevantWords = setOf(
+        "the", "and", "or", "with", "in", "on", "at", "by", "for", "of", "to",
+        "from", "per", "each", "piece", "pieces", "item", "items", "product",
+        "food", "drink", "beverage", "snack", "meal", "dish", "recipe", "style",
+        "flavour", "flavor", "taste", "mixed", "assorted", "variety", "selection",
+        "collection", "range", "series", "edition", "version", "type", "kind",
+        "sort", "grade", "class", "level", "standard", "regular", "normal",
+        "basic", "simple", "plain", "mild", "medium", "strong", "light", "heavy",
+        "thick", "thin", "fine", "coarse", "smooth", "rough", "soft", "hard",
+        "crispy", "crunchy", "tender", "juicy", "dry", "wet", "hot", "cold",
+        "warm", "cool", "sweet", "sour", "bitter", "salty", "spicy", "mild"
+    )
+
+    fun findMatchingIngredient(
+        product: Product,
+        existingIngredients: List<IngredientItem>
+    ): IngredientItem? {
+        val productName =
+            (product.productName ?: product.productNameEn ?: product.genericName ?: "").lowercase()
         val categories = product.categoriesTags ?: emptyList()
         val brands = (product.brands ?: "").lowercase()
 
-        // First, try exact name match with existing ingredients
+        // Clean the product name by removing brand names and irrelevant words
+        val cleanedProductName = cleanProductName(productName)
+
+        // First, try exact name match with existing ingredients using cleaned name
         existingIngredients.forEach { ingredient ->
-            if (productName.contains(ingredient.name.lowercase()) ||
-                brands.contains(ingredient.name.lowercase())) {
+            val ingredientName = ingredient.name.lowercase()
+            if (cleanedProductName.contains(ingredientName) ||
+                productName.contains(ingredientName) ||
+                brands.contains(ingredientName)
+            ) {
                 return ingredient
             }
         }
 
-        // Then try keyword matching
+        // Try keyword matching with both original and cleaned names
         ingredientKeywords.forEach { (keyword, ingredientEnum) ->
-            if (productName.contains(keyword) ||
-                brands.contains(keyword) ||
-                categories.any { it.contains(keyword) }) {
+            val keywordLower = keyword.lowercase()
+
+            // Check in cleaned product name first (higher priority)
+            if (cleanedProductName.contains(keywordLower) ||
+                // Then check original product name
+                productName.contains(keywordLower) ||
+                // Then check brands
+                brands.contains(keywordLower) ||
+                // Finally check categories
+                categories.any { it.lowercase().contains(keywordLower) }
+            ) {
+
                 return existingIngredients.find {
                     it.name.equals(ingredientEnum.displayName, ignoreCase = true)
+                }
+            }
+        }
+
+        // Try partial word matching for better results
+        return findPartialMatch(cleanedProductName, existingIngredients)
+    }
+
+    private fun cleanProductName(productName: String): String {
+        val words = productName.split(Regex("\\s+|[-_.,;:!?()]"))
+        val cleanedWords = words.filter { word ->
+            val cleanWord = word.trim().lowercase()
+            cleanWord.isNotEmpty() &&
+                    cleanWord.length > 2 &&
+                    !brandNames.contains(cleanWord) &&
+                    !irrelevantWords.contains(cleanWord) &&
+                    !cleanWord.matches(Regex("\\d+.*")) // Remove words starting with numbers
+        }
+        return cleanedWords.joinToString(" ")
+    }
+
+    private fun findPartialMatch(
+        cleanedName: String,
+        existingIngredients: List<IngredientItem>
+    ): IngredientItem? {
+        val words = cleanedName.split(Regex("\\s+"))
+
+        // Try to find ingredients that match any significant word
+        for (word in words) {
+            if (word.length > 3) { // Only consider words longer than 3 characters
+                // Check if any keyword contains this word or vice versa
+                ingredientKeywords.forEach { (keyword, ingredientEnum) ->
+                    if (word.contains(keyword) || keyword.contains(word)) {
+                        val matchedIngredient = existingIngredients.find {
+                            it.name.equals(ingredientEnum.displayName, ignoreCase = true)
+                        }
+                        if (matchedIngredient != null) return matchedIngredient
+                    }
+                }
+
+                // Check if any existing ingredient name contains this word
+                existingIngredients.forEach { ingredient ->
+                    val ingredientWords = ingredient.name.lowercase().split(Regex("\\s+"))
+                    if (ingredientWords.any { it.contains(word) || word.contains(it) }) {
+                        return ingredient
+                    }
                 }
             }
         }
@@ -214,7 +308,27 @@ object ProductMatcher {
         return null
     }
 
+    // Hardcoded quantities for specific ingredients (in their actual amounts)
+    private val hardcodedQuantities = mapOf(
+        "egg" to 12.0,           // 12 eggs
+        "eggs" to 12.0,          // 12 eggs
+        "butter" to 250.0,       // 250g
+        "milk" to 2200.0         // 2200ml (2.2L)
+    )
+
     fun parseQuantity(product: Product): Double {
+        // Check if this is a product that should have hardcoded quantities
+        val productName =
+            (product.productName ?: product.productNameEn ?: product.genericName ?: "").lowercase()
+        val cleanedName = cleanProductName(productName)
+
+        // Check for hardcoded quantities first
+        hardcodedQuantities.forEach { (keyword, quantity) ->
+            if (productName.contains(keyword) || cleanedName.contains(keyword)) {
+                return quantity
+            }
+        }
+
         // Try different quantity fields and parsing strategies
         val quantityStrings = listOfNotNull(
             product.quantity,
@@ -307,7 +421,7 @@ object ProductMatcher {
     }
 }
 
-// Updated fetch function for multi-scan capability
+// Fetch function for multi-scan capability - does not update ingredients directly
 suspend fun fetchProductForMultiScan(
     barcode: String,
     httpClient: HttpClient,
@@ -342,7 +456,7 @@ suspend fun fetchProductForMultiScan(
     }
 }
 
-// Keep original function for backward compatibility
+// Single-scan function that immediately updates the pantry (for backward compatibility)
 suspend fun fetchProductAndUpdatePantry(
     barcode: String,
     httpClient: HttpClient,
@@ -356,11 +470,22 @@ suspend fun fetchProductAndUpdatePantry(
     ) { result ->
         when (result) {
             is ScanResult.Success -> {
+                // Create updated ingredient with increased quantity
                 val updatedIngredient = result.matchedIngredient.copy(
                     quantity = result.matchedIngredient.quantity + result.quantity
                 )
+
+                // Update the ingredient in the manager using the extension function
                 ingredientsManager.updateIngredient(updatedIngredient)
-                onResult("✓ Added ${result.productName} (+${result.quantity} ${result.matchedIngredient.defaultUnit})")
+
+                // Format the quantity for display
+                val formattedQuantity = if (result.quantity % 1.0 == 0.0) {
+                    result.quantity.toInt().toString()
+                } else {
+                    result.quantity.toString().toString()
+                }
+
+                onResult("✓ Added ${result.productName} (+$formattedQuantity ${result.matchedIngredient.defaultUnit})")
             }
             is ScanResult.Error -> {
                 onResult(result.message)
