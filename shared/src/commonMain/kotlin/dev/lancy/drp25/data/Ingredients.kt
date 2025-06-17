@@ -355,7 +355,10 @@ fun formatDouble(quantity: Double): String = when {
         if (quantity > 5) {
             round(quantity).toInt().toString()
         } else {
-            quantity.toString()
+            val quant = round(quantity).toInt()
+            if (quant == 0)
+                (quant + 1).toString()
+            else quant.toString()
         }
     }
 }
