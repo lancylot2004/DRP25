@@ -4,7 +4,6 @@ package dev.lancy.drp25.ui.main.pantry
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,6 +23,7 @@ import com.composables.icons.lucide.*
 import dev.lancy.drp25.data.IngredientItem
 import dev.lancy.drp25.data.formatQuantity
 import dev.lancy.drp25.utilities.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import org.publicvalue.multiplatform.qrcode.CameraPosition
@@ -35,18 +35,17 @@ data class ScannedItem(
     val productName: String,
     val ingredient: IngredientItem,
     val quantity: Double,
-    val timestamp: Long = Clock.System.now().toEpochMilliseconds()
+    val timestamp: Long = Clock.System.now().toEpochMilliseconds(),
 )
 
 @Composable
 fun QRScannerView(
     ingredientsManager: PersistenceManager<List<IngredientItem>>,
-    onClose: () -> Unit
+    onClose: () -> Unit,
 ) {
-    var flashlightOn by remember { mutableStateOf(false) }
-    var scannedItems by remember { mutableStateOf(listOf<ScannedItem>()) }
+    var scannedItems by remember { mutableStateOf(mutableListOf<ScannedItem>()) }
     var isScanning by remember { mutableStateOf(true) }
-    var lastScannedBarcode by remember { mutableStateOf("") }
+    var acceptResults by remember { mutableStateOf(true) }
     var scanMessage by remember { mutableStateOf<String?>(null) }
 
     val coroutineScope = rememberCoroutineScope()
@@ -64,21 +63,21 @@ fun QRScannerView(
                     .fillMaxWidth()
                     .padding(16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
                     onClick = onClose,
                     modifier = Modifier
                         .background(
                             color = ColourScheme.primaryContainer,
-                            shape = CircleShape
-                        )
+                            shape = CircleShape,
+                        ),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close scanner",
                         tint = ColourScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(24.dp),
                     )
                 }
 
@@ -86,7 +85,7 @@ fun QRScannerView(
                     text = "Scan Multiple Items",
                     style = MaterialTheme.typography.headlineSmall,
                     color = ColourScheme.onPrimary,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
 
                 Spacer(modifier = Modifier.width(48.dp)) // Balance the layout
@@ -104,123 +103,66 @@ fun QRScannerView(
                 if (isScanning) {
                     ScannerWithPermissions(
                         modifier = Modifier.fillMaxSize(),
-                        onScanned = { barcode ->
-                            if (barcode != lastScannedBarcode) {
-                                lastScannedBarcode = barcode
-                                coroutineScope.launch {
-                                    scanMessage = "Scanning..."
-                                    fetchProductForMultiScan(
-                                        barcode = barcode,
-                                        httpClient = httpClient,
-                                        currentIngredients = currentIngredients,
-                                        onResult = { result ->
-                                            when (result) {
-                                                is ScanResult.Success -> {
-                                                    val existingItem = scannedItems.find {
-                                                        it.ingredient.name == result.matchedIngredient.name
-                                                    }
+                        onScanned = onScanned@{ barcode ->
+                            scanMessage = "Scanning..."
+                            if (!acceptResults) return@onScanned true
+                            acceptResults = false
 
-                                                    if (existingItem != null) {
-                                                        // Update quantity for existing item
-                                                        scannedItems = scannedItems.map { item ->
-                                                            if (item.ingredient.name == result.matchedIngredient.name) {
-                                                                item.copy(quantity = item.quantity + result.quantity)
-                                                            } else item
-                                                        }
-                                                        scanMessage = "✓ Added more ${result.matchedIngredient.name}"
-                                                    } else {
-                                                        // Add new item
-                                                        scannedItems = scannedItems + ScannedItem(
-                                                            barcode = barcode,
-                                                            productName = result.productName,
-                                                            ingredient = result.matchedIngredient,
-                                                            quantity = result.quantity
-                                                        )
-                                                        scanMessage = "✓ Added ${result.productName}"
-                                                    }
-                                                }
-                                                is ScanResult.Error -> {
-                                                    scanMessage = result.message
-                                                }
-                                            }
+                            coroutineScope.launch {
+                                delay(1000L)
+                                acceptResults = true
+
+                                fetchProductForMultiScan(
+                                    barcode = barcode,
+                                    httpClient = httpClient,
+                                    currentIngredients = currentIngredients,
+                                ) { result ->
+                                    scanMessage = when (result) {
+                                        is ScanResult.Success -> {
+                                            onScanSuccess(scannedItems, result, barcode)
                                         }
-                                    )
+
+                                        is ScanResult.Error -> {
+                                            result.message
+                                        }
+                                    }
                                 }
                             }
                             true
                         },
                         types = listOf(CodeType.EAN13, CodeType.EAN8),
                         cameraPosition = CameraPosition.BACK,
-                       // flashlightOn = flashlightOn
                     )
                 } else {
                     // Paused state
                     Box(
                         modifier = Modifier.fillMaxSize().background(ColourScheme.surface.copy(alpha = 0.9f)),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                            verticalArrangement = Arrangement.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CameraAlt,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
-                                tint = ColourScheme.onSurface.copy(alpha = 0.6f)
+                                tint = ColourScheme.onSurface.copy(alpha = 0.6f),
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "Scanner Paused",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = ColourScheme.onSurface
+                                color = ColourScheme.onSurface,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "Review your items below",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = ColourScheme.onSurface.copy(alpha = 0.7f)
+                                color = ColourScheme.onSurface.copy(alpha = 0.7f),
                             )
                         }
                     }
-                }
-            }
-
-            // Scanner controls
-            Row(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .background(
-                        color = ColourScheme.primaryContainer,
-                        shape = Shape.RoundedLarge,
-                    )
-                    .padding(vertical = Size.Spacing, horizontal = Size.BigPadding),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Size.Padding),
-            ) {
-                IconButton(
-                    onClick = { flashlightOn = !flashlightOn },
-                    enabled = isScanning
-                ) {
-                    Icon(
-                        if (flashlightOn) Lucide.Flashlight else Lucide.FlashlightOff,
-                        contentDescription = "Toggle flashlight",
-                        modifier = Modifier.size(Size.IconMedium),
-                    )
-                }
-
-                VerticalDivider(
-                    modifier = Modifier.height(24.dp),
-                    thickness = 1.dp,
-                    color = ColourScheme.onPrimaryContainer.copy(alpha = 0.3f),
-                )
-
-                IconButton(onClick = { isScanning = !isScanning }) {
-                    Icon(
-                        if (isScanning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isScanning) "Pause scanning" else "Resume scanning",
-                        modifier = Modifier.size(Size.IconMedium),
-                    )
                 }
             }
 
@@ -228,23 +170,27 @@ fun QRScannerView(
             AnimatedVisibility(
                 visible = scanMessage != null,
                 enter = fadeIn() + slideInVertically(),
-                exit = fadeOut() + slideOutVertically()
+                exit = fadeOut() + slideOutVertically(),
             ) {
                 Card(
                     modifier = Modifier.padding(horizontal = 16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (scanMessage?.startsWith("✓") == true)
+                        containerColor = if (scanMessage?.startsWith("✓") == true) {
                             ColourScheme.primaryContainer
-                        else ColourScheme.errorContainer
-                    )
+                        } else {
+                            ColourScheme.errorContainer
+                        },
+                    ),
                 ) {
                     Text(
                         text = scanMessage ?: "",
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (scanMessage?.startsWith("✓") == true)
+                        color = if (scanMessage?.startsWith("✓") == true) {
                             ColourScheme.onPrimaryContainer
-                        else ColourScheme.onErrorContainer
+                        } else {
+                            ColourScheme.onErrorContainer
+                        },
                     )
                 }
             }
@@ -258,7 +204,7 @@ fun QRScannerView(
                     .weight(1f)
                     .padding(horizontal = 16.dp),
                 colors = CardDefaults.cardColors(containerColor = ColourScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // List header
@@ -268,16 +214,16 @@ fun QRScannerView(
                             .background(ColourScheme.surfaceVariant)
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
                             text = "Scanned Items (${scannedItems.size})",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
                         )
 
                         if (scannedItems.isNotEmpty()) {
-                            TextButton(onClick = { scannedItems = emptyList() }) {
+                            TextButton(onClick = { scannedItems.clear() }) {
                                 Text("Clear All")
                             }
                         }
@@ -287,21 +233,20 @@ fun QRScannerView(
                     LazyColumn(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(scannedItems, key = { it.timestamp }) { item ->
                             ScannedItemRow(
                                 item = item,
-                                onRemove = {
-                                    scannedItems = scannedItems.filter { it.timestamp != item.timestamp }
-                                },
+                                onRemove = { scannedItems.removeAll { it.timestamp == item.timestamp } },
                                 onQuantityChange = { newQuantity ->
-                                    scannedItems = scannedItems.map {
-                                        if (it.timestamp == item.timestamp) {
-                                            it.copy(quantity = newQuantity)
-                                        } else it
+                                    scannedItems.find { it.timestamp == item.timestamp }?.let {
+                                        val index = scannedItems.indexOf(it)
+                                        if (index != -1) {
+                                            scannedItems[index] = it.copy(quantity = newQuantity)
+                                        }
                                     }
-                                }
+                                },
                             )
                         }
 
@@ -311,23 +256,23 @@ fun QRScannerView(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(200.dp),
-                                    contentAlignment = Alignment.Center
+                                    contentAlignment = Alignment.Center,
                                 ) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
+                                        verticalArrangement = Arrangement.Center,
                                     ) {
                                         Icon(
                                             imageVector = Lucide.ScanLine,
                                             contentDescription = null,
                                             modifier = Modifier.size(48.dp),
-                                            tint = ColourScheme.onSurface.copy(alpha = 0.4f)
+                                            tint = ColourScheme.onSurface.copy(alpha = 0.4f),
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Text(
                                             text = "No items scanned yet",
                                             style = MaterialTheme.typography.bodyLarge,
-                                            color = ColourScheme.onSurface.copy(alpha = 0.6f)
+                                            color = ColourScheme.onSurface.copy(alpha = 0.6f),
                                         )
                                     }
                                 }
@@ -342,11 +287,11 @@ fun QRScannerView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 OutlinedButton(
                     onClick = onClose,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text("Cancel")
                 }
@@ -360,7 +305,7 @@ fun QRScannerView(
                             }
                             if (currentIngredient != null) {
                                 val updatedIngredient = currentIngredient.copy(
-                                    quantity = currentIngredient.quantity + item.quantity
+                                    quantity = currentIngredient.quantity + item.quantity,
                                 )
                                 ingredientsManager.updateIngredient(updatedIngredient)
                             }
@@ -368,12 +313,12 @@ fun QRScannerView(
                         onClose()
                     },
                     enabled = scannedItems.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Add ${scannedItems.size} Items")
@@ -391,27 +336,56 @@ fun QRScannerView(
     }
 }
 
+private fun onScanSuccess(
+    existingItems: MutableList<ScannedItem>,
+    result: ScanResult.Success,
+    barcode: String,
+): String? {
+    val existingIndex = existingItems.indexOfFirst {
+        it.ingredient.name == result.matchedIngredient.name
+    }
+    val existingItem = existingItems[existingIndex]
+
+    return if (existingIndex != -1) {
+        // Update quantity for existing item
+        existingItems[existingIndex] =
+            existingItem.copy(quantity = existingItem.quantity + result.matchedIngredient.quantity)
+        "✓ Added more ${result.matchedIngredient.name}"
+    } else {
+        // Add new item
+        existingItems.add(
+            ScannedItem(
+                barcode = barcode,
+                productName = result.productName,
+                ingredient = result.matchedIngredient,
+                quantity = result.quantity,
+            ),
+        )
+        "✓ Added ${result.productName}"
+    }
+}
+
 @Composable
 fun ScannedItemRow(
     item: ScannedItem,
     onRemove: () -> Unit,
-    onQuantityChange: (Double) -> Unit
+    onQuantityChange: (Double) -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = ColourScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             // Ingredient icon
             IngredientIconView(
                 icon = item.ingredient.icon,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(48.dp),
             )
 
             Spacer(modifier = Modifier.width(12.dp))
@@ -421,31 +395,31 @@ fun ScannedItemRow(
                 Text(
                     text = item.ingredient.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
                 )
                 Text(
                     text = item.productName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = ColourScheme.onSurface.copy(alpha = 0.7f)
+                    color = ColourScheme.onSurface.copy(alpha = 0.7f),
                 )
             }
 
             // Quantity controls
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 IconButton(
                     onClick = {
                         val newQty = (item.quantity - 1).coerceAtLeast(0.5)
                         onQuantityChange(newQty)
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
                         contentDescription = "Decrease quantity",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
 
@@ -454,31 +428,31 @@ fun ScannedItemRow(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.width(80.dp),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
                 )
 
                 IconButton(
                     onClick = {
                         onQuantityChange(item.quantity + 1)
                     },
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Increase quantity",
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(18.dp),
                     )
                 }
 
                 IconButton(
                     onClick = onRemove,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Remove item",
                         modifier = Modifier.size(18.dp),
-                        tint = ColourScheme.error
+                        tint = ColourScheme.error,
                     )
                 }
             }

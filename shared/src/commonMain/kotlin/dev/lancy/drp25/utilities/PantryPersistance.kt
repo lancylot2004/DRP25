@@ -1,11 +1,8 @@
-// File: dev/lancy/drp25/utilities/PersistenceManager.kt
-
 package dev.lancy.drp25.utilities
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import com.russhwolf.settings.ExperimentalSettingsApi
-import com.russhwolf.settings.Settings
 import com.russhwolf.settings.serialization.decodeValueOrNull
 import com.russhwolf.settings.serialization.encodeValue
 import dev.lancy.drp25.data.*
@@ -34,8 +31,11 @@ data class PersistentPantryIngredient(
     val defaultUnit: String,
     val incrementAmount: Double,
     val expirationDate: String? = null, // ISO date string
-    val addedDate: String = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString(),
-    val notes: String? = null
+    val addedDate: String = Clock.System
+        .now()
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+        .toString(),
+    val notes: String? = null,
 )
 
 // Data class for persistent utensil selection
@@ -43,35 +43,34 @@ data class PersistentPantryIngredient(
 data class PersistentUtensilSelection(
     val utensilName: String,
     val isAvailable: Boolean = true,
-    val lastUsed: String = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).toString()
+    val lastUsed: String = Clock.System
+        .now()
+        .toLocalDateTime(TimeZone.currentSystemDefault())
+        .toString(),
 )
 
 // Extension functions to convert between domain models and persistent models
-fun IngredientItem.toPersistent(): PersistentPantryIngredient {
-    return PersistentPantryIngredient(
-        name = name,
-        icon = icon.name,
-        type = type.name,
-        location = location.name,
-        quantity = quantity,
-        defaultUnit = defaultUnit,
-        incrementAmount = incrementAmount,
-        expirationDate = null,
-        notes = null
-    )
-}
+fun IngredientItem.toPersistent(): PersistentPantryIngredient = PersistentPantryIngredient(
+    name = name,
+    icon = icon.name,
+    type = type.name,
+    location = location.name,
+    quantity = quantity,
+    defaultUnit = defaultUnit,
+    incrementAmount = incrementAmount,
+    expirationDate = null,
+    notes = null,
+)
 
-fun PersistentPantryIngredient.toIngredientItem(): IngredientItem {
-    return IngredientItem(
-        name = name,
-        icon = IngredientIcon.valueOf(icon),
-        type = IngredientType.valueOf(type),
-        location = IngredientLocation.valueOf(location),
-        quantity = quantity,
-        defaultUnit = defaultUnit,
-        incrementAmount = incrementAmount
-    )
-}
+fun PersistentPantryIngredient.toIngredientItem(): IngredientItem = IngredientItem(
+    name = name,
+    icon = IngredientIcon.valueOf(icon),
+    type = IngredientType.valueOf(type),
+    location = IngredientLocation.valueOf(location),
+    quantity = quantity,
+    defaultUnit = defaultUnit,
+    incrementAmount = incrementAmount,
+)
 
 // Pantry Ingredients Manager (No changes needed)
 @OptIn(ExperimentalSerializationApi::class, ExperimentalSettingsApi::class)
@@ -82,7 +81,7 @@ fun rememberPantryIngredientsManager(): PersistenceManager<List<IngredientItem>>
             settings
                 .decodeValueOrNull<List<PersistentPantryIngredient>>(PANTRY_INGREDIENTS_KEY)
                 ?.map { it.toIngredientItem() }
-                ?: getDefaultIngredients()
+                ?: getDefaultIngredients(),
         )
         override val state: StateFlow<List<IngredientItem>> = _state.asStateFlow()
 
@@ -107,7 +106,7 @@ fun rememberPantryUtensilsManager(): PersistenceManager<List<PersistentUtensilSe
         private val _state = MutableStateFlow(
             settings
                 .decodeValueOrNull<List<PersistentUtensilSelection>>(PANTRY_UTENSILS_KEY)
-                ?: emptyList()
+                ?: emptyList(),
         )
         override val state: StateFlow<List<PersistentUtensilSelection>> = _state.asStateFlow()
 
@@ -136,7 +135,8 @@ fun PersistenceManager<List<IngredientItem>>.removeIngredient(ingredient: Ingred
 
 fun PersistenceManager<List<IngredientItem>>.updateIngredientQuantity(name: String, newQuantity: Double) {
     update {
-        this.map { ingredient -> // 'this' refers to the List<IngredientItem>
+        this.map { ingredient ->
+            // 'this' refers to the List<IngredientItem>
             if (ingredient.name == name) {
                 ingredient.copy(quantity = newQuantity)
             } else {
@@ -148,7 +148,8 @@ fun PersistenceManager<List<IngredientItem>>.updateIngredientQuantity(name: Stri
 
 fun PersistenceManager<List<IngredientItem>>.updateIngredient(updatedIngredient: IngredientItem) {
     update {
-        this.map { ingredient -> // 'this' refers to the List<IngredientItem>
+        this.map { ingredient ->
+            // 'this' refers to the List<IngredientItem>
             if (ingredient.name == updatedIngredient.name) {
                 updatedIngredient
             } else {
@@ -163,7 +164,10 @@ fun PersistentPantryIngredient.isExpired(): Boolean {
     val expirationDate = this.expirationDate ?: return false
     return try {
         val expDate = LocalDate.parse(expirationDate)
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = Clock.System
+            .now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
         expDate < today
     } catch (e: Exception) {
         false
@@ -175,7 +179,10 @@ fun PersistentPantryIngredient.daysUntilExpiration(): Int? {
     val expirationDate = this.expirationDate ?: return null
     return try {
         val expDate = LocalDate.parse(expirationDate)
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = Clock.System
+            .now()
+            .toLocalDateTime(TimeZone.currentSystemDefault())
+            .date
         (expDate.toEpochDays() - today.toEpochDays()).toInt()
     } catch (e: Exception) {
         null
@@ -197,13 +204,15 @@ fun PersistentPantryIngredient.daysUntilExpiration(): Int? {
  */
 fun PersistenceManager<List<IngredientItem>>.subtractIngredientsFromRecipe(recipe: Recipe) {
     // We update the state of the pantry manager
-    update { // 'currentPantryList' is the List<IngredientItem> from the StateFlow
+    update {
+        // 'currentPantryList' is the List<IngredientItem> from the StateFlow
         val updatedPantryList = this.toMutableList()
         var anyInsufficient = false
 
         println("\nPantryManager: Attempting to subtract ingredients for recipe '${recipe.name}'.")
 
-        recipe.ingredients.forEach { recipeIngredient -> // Iterate through ingredients in the cooked recipe
+        recipe.ingredients.forEach { recipeIngredient ->
+            // Iterate through ingredients in the cooked recipe
             // Find the matching ingredient in the current pantry list by name
             val pantryItemIndex = updatedPantryList.indexOfFirst { it.name == recipeIngredient.name }
 
@@ -230,10 +239,12 @@ fun PersistenceManager<List<IngredientItem>>.subtractIngredientsFromRecipe(recip
                             "dash" -> IngredientUnit.CountUnit.Dash
                             // Add more unit mappings as per your IngredientUnit definitions
                             else -> throw IllegalArgumentException("Unknown pantry default unit: ${pantryItem.defaultUnit}")
-                        }
+                        },
                     )
                 } catch (e: Exception) {
-                    println("PantryManager Warning: Could not convert ${recipeIngredient.quantity} ${recipeIngredient.unit.shortName} of ${recipeIngredient.name} to ${pantryItem.defaultUnit} for subtraction: ${e.message}. Skipping this ingredient.")
+                    println(
+                        "PantryManager Warning: Could not convert ${recipeIngredient.quantity} ${recipeIngredient.unit.shortName} of ${recipeIngredient.name} to ${pantryItem.defaultUnit} for subtraction: ${e.message}. Skipping this ingredient.",
+                    )
                     return@forEach // Skip to the next ingredient in the recipe
                 }
 
@@ -241,20 +252,36 @@ fun PersistenceManager<List<IngredientItem>>.subtractIngredientsFromRecipe(recip
                     // Enough stock in pantry, subtract the quantity
                     val newQuantity = pantryItem.quantity - quantityUsedInPantryUnit
                     updatedPantryList[pantryItemIndex] = pantryItem.copy(quantity = newQuantity)
-                    println("PantryManager: Subtracted ${quantityUsedInPantryUnit.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit} of ${recipeIngredient.name}. New pantry stock: ${newQuantity.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}.")
+                    println(
+                        "PantryManager: Subtracted ${quantityUsedInPantryUnit.roundToDecimalPlaces(
+                            2,
+                        )} ${pantryItem.defaultUnit} of ${recipeIngredient.name}. New pantry stock: ${newQuantity.roundToDecimalPlaces(
+                            2,
+                        )} ${pantryItem.defaultUnit}.",
+                    )
                 } else {
                     // Not enough stock in pantry
-                    println("PantryManager Warning: Insufficient stock for ${recipeIngredient.name}. Needed: ${quantityUsedInPantryUnit.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}, Available: ${pantryItem.quantity.roundToDecimalPlaces(2)} ${pantryItem.defaultUnit}. Skipping subtraction for this item.")
+                    println(
+                        "PantryManager Warning: Insufficient stock for ${recipeIngredient.name}. Needed: ${quantityUsedInPantryUnit.roundToDecimalPlaces(
+                            2,
+                        )} ${pantryItem.defaultUnit}, Available: ${pantryItem.quantity.roundToDecimalPlaces(
+                            2,
+                        )} ${pantryItem.defaultUnit}. Skipping subtraction for this item.",
+                    )
                     anyInsufficient = true
                 }
             } else {
                 // Ingredient not found in pantry
-                println("PantryManager Warning: Ingredient '${recipeIngredient.name}' from recipe not found in pantry. Skipping subtraction for this item.")
+                println(
+                    "PantryManager Warning: Ingredient '${recipeIngredient.name}' from recipe not found in pantry. Skipping subtraction for this item.",
+                )
             }
         }
 
         if (anyInsufficient) {
-            println("PantryManager: Note: Some ingredients for recipe '${recipe.name}' could not be fully subtracted from pantry due to insufficient stock.")
+            println(
+                "PantryManager: Note: Some ingredients for recipe '${recipe.name}' could not be fully subtracted from pantry due to insufficient stock.",
+            )
         }
         updatedPantryList // Return the modified list, which will then be saved by the manager
     }
